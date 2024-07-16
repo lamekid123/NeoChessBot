@@ -2,7 +2,9 @@ import pyttsx3
 import threading
 import queue
 import time
-
+import pyaudio
+import wave
+import keyboard
 
 ## Text-to-speech engine that run in another thread
 class TTSThread(threading.Thread):
@@ -36,3 +38,42 @@ class TTSThread(threading.Thread):
                     time.sleep(2)
 
         self.tts_engine.endLoop()
+
+class S2TThread(threading.Thread):
+
+    ##auto start and loop until application close
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.input = "test.wav"
+        self.daemon = True
+        self.FORMAT = pyaudio.paInt16
+        self.CHANNELS = 1
+        self.RATE = 16000
+        self.CHUNK = 1024
+        self.audio = pyaudio.PyAudio()
+        self.stream = self.audio.open(format=self.FORMAT,
+                channels=self.CHANNELS,
+                rate=self.RATE,
+                input=True,
+                frames_per_buffer=self.FRAME)
+        self.frames = []
+        self.start()
+
+    def run(self):
+        voiceInput_running = True
+        while voiceInput_running:
+            while(keyboard.is_pressed('space')):
+                data = self.stream.read(self.CHUNK)
+                self.frames.append(data)
+            if(not self.frames):
+                wave_file = wave.open("test.wav", 'wb')
+                wave_file.setnchannels(self.CHANNELS)
+                wave_file.setsampwidth(self.p.get_sample_size(self.FORMAT))
+                wave_file.setframerate(self.RATE)
+                wave_file.writeframes(b''.join(self.frames))
+                wave_file.close()
+                self.frames=[]
+                print("Voice Input Ended")
+        self.stream.stop_stream()
+        self.stream.close()
+        self.audio.terminate()
