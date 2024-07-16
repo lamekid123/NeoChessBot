@@ -1,11 +1,7 @@
 import whisper
 import pyaudio
-import keyboard
 
 model = whisper.load_model("base")
-import pyaudio
-import wave
-import keyboard
 
 # Recording parameters
 FORMAT = pyaudio.paInt16

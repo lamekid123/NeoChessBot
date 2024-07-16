@@ -1,6 +1,5 @@
 openai-whisper
 numpy
-
 chess==1.10.0
 opencv_python==4.8.1.78
 PyAutoGUI==0.9.54
