@@ -1575,7 +1575,7 @@ if __name__ == "__main__":
         )
         window.leftWidget.chessWebView.loadFinished.disconnect()
 
-    window.leftWidget.chessWebView.loadFinished.connect(welcome_callback)
+    window.leftWidget.chessWebView.loadFinished.connect(welcome_callback)           
 
     window.move(10, 10)
     # window.switch_arrow_mode()

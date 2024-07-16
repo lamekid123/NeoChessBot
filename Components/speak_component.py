@@ -13,7 +13,7 @@ class TTSThread(threading.Thread):
         self.importance = False
         self.queue = queue.Queue()
         self.daemon = True
-        self.tts_engine = pyttsx3.init("nsss")
+        self.tts_engine = pyttsx3.init("sapi5")    ## sapi5 for Windows, nsss for Mac, espeak for others
         self.tts_engine.setProperty("rate", 190)
         self.tts_engine.setProperty("volume", 0.7)
         self.tts_engine.startLoop(False)
