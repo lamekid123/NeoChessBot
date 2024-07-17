@@ -4,7 +4,8 @@ import queue
 import time
 import pyaudio
 import wave
-import keyboard
+import whisper
+import torch
 
 ## Text-to-speech engine that run in another thread
 class TTSThread(threading.Thread):
@@ -22,6 +23,7 @@ class TTSThread(threading.Thread):
         self.start()
 
     def run(self):
+        print("tts running")
         self.tts_engine.iterate()
         t_running = True
         while t_running:
@@ -44,7 +46,11 @@ class S2TThread(threading.Thread):
     ##auto start and loop until application close
     def __init__(self):
         threading.Thread.__init__(self)
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = whisper.load_model("base", device=device)
         self.input = "test.wav"
+        self.output = ""
+        self.voice = False
         self.daemon = True
         self.FORMAT = pyaudio.paInt16
         self.CHANNELS = 1
@@ -55,25 +61,33 @@ class S2TThread(threading.Thread):
                 channels=self.CHANNELS,
                 rate=self.RATE,
                 input=True,
-                frames_per_buffer=self.FRAME)
+                frames_per_buffer=self.CHUNK)
         self.frames = []
         self.start()
 
     def run(self):
+        
+        print("s2t running")
         voiceInput_running = True
         while voiceInput_running:
-            while(keyboard.is_pressed('space')):
+            while(self.voice):
+                print("recording")
                 data = self.stream.read(self.CHUNK)
                 self.frames.append(data)
-            if(not self.frames):
+            if(self.frames):
                 wave_file = wave.open("test.wav", 'wb')
                 wave_file.setnchannels(self.CHANNELS)
-                wave_file.setsampwidth(self.p.get_sample_size(self.FORMAT))
+                wave_file.setsampwidth(self.audio.get_sample_size(self.FORMAT))
                 wave_file.setframerate(self.RATE)
                 wave_file.writeframes(b''.join(self.frames))
                 wave_file.close()
                 self.frames=[]
+                self.voice = False
                 print("Voice Input Ended")
+                print("Speech to Text performing...")
+                self.output = self.model.transcribe("Speech.wav", fp16=False)["text"]
+                print("Speech to Text finished!")
+
         self.stream.stop_stream()
         self.stream.close()
         self.audio.terminate()

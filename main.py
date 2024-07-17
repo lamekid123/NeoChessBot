@@ -24,7 +24,7 @@ from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QIcon
 from Components.board_detection_component import detectChessboard, userColor        ## header file
 from Components.piece_move_component import widgetDragDrop, widgetClick
 from Components.chess_validation_component import ChessBoard
-from Components.speak_component import TTSThread
+from Components.speak_component import TTSThread, S2TThread
 from Utils.enum_helper import (
     Input_mode,
     Bot_flow_status,
@@ -33,8 +33,6 @@ from Utils.enum_helper import (
     Game_play_mode,
 )
 import whisper
-import pyaudio
-import wave
 
 PIECE_TYPE_CONVERSION = {
     "q": "queen",
@@ -1458,7 +1456,10 @@ class MainWindow(QMainWindow):
         shortcut_O.activated.connect(self.helper_menu)
 
         shortcut_S = QShortcut(QKeySequence("Ctrl+S"), self)
-        shortcut_S.activated.connect(self.voiceStart)
+        shortcut_S.activated.connect(voiceInput)
+
+        shortcut_z = QShortcut(QKeySequence("Ctrl+Z"), self)
+        shortcut_z.activated.connect(checkVoice)
 
         self.all_shortcut = {
             "F": shortcut_F,
@@ -1539,19 +1540,6 @@ class MainWindow(QMainWindow):
         self.currentFoucs = 0
         # self.show_information_box()
     
-    def voiceStart(self):
-        print("Listening...Press any button to terminate Voice Input")
-        while(not input()):
-            data = stream.read(frames)
-            frames.append(data)
-        wave_file = wave.open("test.wav", 'wb')
-        wave_file.setnchannels(CHANNELS)
-        wave_file.setsampwidth(p.get_sample_size(FORMAT))
-        wave_file.setframerate(RATE)
-        wave_file.writeframes(b''.join(frames))
-        wave_file.close()
-        print("Voice Input Ended")
-    
 ## load text to TTS queue
 def speak(sentence, importance=False, dialog=False):
     global previous_sentence
@@ -1563,11 +1551,17 @@ def speak(sentence, importance=False, dialog=False):
     else:
         print("no speak engine")
 
+def voiceInput():
+    print("Ctrl S is pressed")
+    voice_thread.voice = not voice_thread.voice
+
+def checkVoice():
+    print(voice_thread.output)
 
 if __name__ == "__main__":
-    
-    global model
-    model = whisper.load_model("base")
+
+    global text
+    text = ""
 
     global speak_thread
     global current_dir
@@ -1576,7 +1570,7 @@ if __name__ == "__main__":
 
     speak_thread = TTSThread()
 
-    voiceInput = S2TThread()
+    voice_thread = S2TThread()
     # speak_thread.start()
     current_dir = os.path.dirname(os.path.realpath(__file__))
 
