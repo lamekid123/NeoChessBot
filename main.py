@@ -17,22 +17,27 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
-from PyQt6.QtCore import QUrl, Qt, QTimer, QRect
+from PyQt6.QtCore import QUrl, Qt, QTimer, QRect, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QIcon
 
 
 from Components.board_detection_component import detectChessboard, userColor        ## header file
 from Components.piece_move_component import widgetDragDrop, widgetClick
 from Components.chess_validation_component import ChessBoard
-from Components.speak_component import TTSThread, S2TThread
+from Components.speak_component import TTSThread
 from Utils.enum_helper import (
     Input_mode,
     Bot_flow_status,
     Game_flow_status,
     Speak_template,
     Game_play_mode,
+    determinant
 )
+
+import pyaudio
+import wave
 import whisper
+import torch
 
 PIECE_TYPE_CONVERSION = {
     "q": "queen",
@@ -131,7 +136,7 @@ class RightWidget(QWidget):
         super().__init__()
         global internal_speak_engine
 
-        self.screen_reader_checkBox = CheckBox("Use internal speak engine")
+        self.screen_reader_checkBox = QCheckBox("Use internal speak engine")
         self.screen_reader_checkBox.setChecked(True)
         self.screen_reader_checkBox.stateChanged.connect(self.checkBoxStateChanged)
         self.screen_reader_checkBox.setAccessibleName("Use internal speak engine")
@@ -140,11 +145,12 @@ class RightWidget(QWidget):
         )
 
         self.playWithComputerButton = QPushButton("Play with computer")
+        self.playWithComputerButton.setText("Play with computer")
         self.playWithComputerButton.setAccessibleName("Play with computer")
         self.playWithComputerButton.setAccessibleDescription(
             "press enter to play with computer engine"
         )
-
+        
         self.playWithOtherButton = QPushButton("Play with other online player ")
         self.playWithOtherButton.setAccessibleName("Play with other online player")
         self.playWithOtherButton.setAccessibleDescription(
@@ -266,7 +272,7 @@ class MainWindow(QMainWindow):
                 self.getOpponentMoveTimer.stop()
                 self.check_game_end_timer.stop()
                 self.getScoreTimer.stop()
-                self.main_flow_status = Bot_flow_status.setting_status
+                main_flow_status = Bot_flow_status.setting_status
                 self.input_mode = Input_mode.command_mode
                 self.rightWidget.commandPanel.setAccessibleDescription(
                     "type the letter 'C' for computer mode, type the letter 'O' for online players mode "
@@ -291,7 +297,7 @@ class MainWindow(QMainWindow):
 
                 return
             case Bot_flow_status.board_init_status:
-                self.main_flow_status = Bot_flow_status.board_init_status
+                main_flow_status = Bot_flow_status.board_init_status
 
                 self.leftWidget.chessWebView.loadFinished.connect(
                     partial(print, "connect")
@@ -314,16 +320,16 @@ class MainWindow(QMainWindow):
                 self.check_game_end_timer.start(2000)
                 self.rightWidget.commandPanel.setFocus()
                 self.currentFoucs = len(self.rightWidget.play_menu)
-                self.main_flow_status = Bot_flow_status.game_play_status
+                main_flow_status = Bot_flow_status.game_play_status
                 return
 
     ##initialize a vs computer game for user
     def playWithComputerHandler(self):
-        if self.main_flow_status == Bot_flow_status.board_init_status:
+        if main_flow_status == Bot_flow_status.board_init_status:
             speak("Still " + Speak_template.initialize_game_sentense.value, True)
             return
         if (
-            self.main_flow_status == Bot_flow_status.game_play_status
+            main_flow_status == Bot_flow_status.game_play_status
             and not self.game_flow_status == Game_flow_status.game_end
         ):
             speak("Please resign before start a new game", True)
@@ -341,7 +347,7 @@ class MainWindow(QMainWindow):
 
         def clickNCapture():
             self.leftWidget.chessWebView.loadFinished.disconnect()
-            if not self.main_flow_status == Bot_flow_status.game_play_status:
+            if not main_flow_status == Bot_flow_status.game_play_status:
                 self.capture_screenshot()
 
         if self.leftWidget.userLoginName != None:
@@ -367,11 +373,11 @@ class MainWindow(QMainWindow):
 
     ##initialize a vs online player game for user
     def playWithOtherButtonHandler(self):  ###url
-        if self.main_flow_status == Bot_flow_status.board_init_status:
+        if main_flow_status == Bot_flow_status.board_init_status:
             speak("Still " + Speak_template.initialize_game_sentense.value, True)
             return
         if (
-            self.main_flow_status == Bot_flow_status.game_play_status
+            main_flow_status == Bot_flow_status.game_play_status
             and not self.game_flow_status == Game_flow_status.game_end
         ):
             speak("Please resign before start a new game", True)
@@ -393,7 +399,7 @@ class MainWindow(QMainWindow):
                     self.leftWidget.checkTime(test)
                 else:
                     print("clocks detected :", clocks)
-                    if not self.main_flow_status == Bot_flow_status.game_play_status:
+                    if not main_flow_status == Bot_flow_status.game_play_status:
                         QTimer.singleShot(3000, self.capture_screenshot)
                         # self.capture_screenshot()
 
@@ -668,7 +674,7 @@ class MainWindow(QMainWindow):
             self.playWithOtherButtonHandler()
             self.rightWidget.commandPanel.clear()
             return
-        match self.main_flow_status:
+        match main_flow_status:
             # case Bot_flow_status.setting_status:
             #     if input == "computer":
             #         self.playWithComputerHandler()
@@ -1265,7 +1271,7 @@ class MainWindow(QMainWindow):
     ##switch to arrow mode, only allowd when game started
     def switch_arrow_mode(self):
         print("shortcut ctrl + J pressed")
-        if self.main_flow_status == Bot_flow_status.game_play_status:
+        if main_flow_status == Bot_flow_status.game_play_status:
 
             speak("arrow_mode")
             self.input_mode = Input_mode.arrow_mode
@@ -1282,7 +1288,7 @@ class MainWindow(QMainWindow):
 
     ##arrow key move and speak the square information
     def handle_arrow(self, direction):
-        if not self.main_flow_status == Bot_flow_status.game_play_status:
+        if not main_flow_status == Bot_flow_status.game_play_status:
             return
         file = self.currentFoucs[0]
         rank = self.currentFoucs[1]
@@ -1388,7 +1394,7 @@ class MainWindow(QMainWindow):
     ##tell user different options based on the application status
     def helper_menu(self):
         print("helper")
-        match self.main_flow_status:
+        match main_flow_status:
             case Bot_flow_status.setting_status:
                 speak(Speak_template.setting_state_help_message.value)
                 return
@@ -1411,7 +1417,12 @@ class MainWindow(QMainWindow):
                     )
 
     def __init__(self, *args, **kwargs):
+        
+        global main_flow_status
         global previous_sentence
+
+        self.VoiceInput_Thread = VoiceInput_Thread() #activate S2T module
+
         self.alphabet = ["A", "B", "C", "D", "E", "F", "G", "H"]
         self.number = ["1", "2", "3", "4", "5", "6", "7", "8"]
         super(MainWindow, self).__init__(*args, **kwargs)
@@ -1456,10 +1467,7 @@ class MainWindow(QMainWindow):
         shortcut_O.activated.connect(self.helper_menu)
 
         shortcut_S = QShortcut(QKeySequence("Ctrl+S"), self)
-        shortcut_S.activated.connect(voiceInput)
-
-        shortcut_z = QShortcut(QKeySequence("Ctrl+Z"), self)
-        shortcut_z.activated.connect(checkVoice)
+        shortcut_S.activated.connect(self.voiceInput)
 
         self.all_shortcut = {
             "F": shortcut_F,
@@ -1474,7 +1482,7 @@ class MainWindow(QMainWindow):
 
         self.arrow_mode_switch(False)
         ##initialize flow status
-        self.main_flow_status = Bot_flow_status.setting_status
+        main_flow_status = Bot_flow_status.setting_status
         self.game_flow_status = Game_flow_status.not_start
         self.input_mode = Input_mode.command_mode
         self.game_play_mode = None
@@ -1539,7 +1547,22 @@ class MainWindow(QMainWindow):
         self.rightWidget.playWithComputerButton.setFocus()
         self.currentFoucs = 0
         # self.show_information_box()
+        self.VoiceInput_Thread.action_signal.connect(self.Action)
     
+    def voiceInput(self):
+        print("Ctrl S is pressed")
+        self.VoiceInput_Thread.activate = not self.VoiceInput_Thread.activate
+
+    def Action(self, str):
+        match(str):
+            case "computer":
+                self.playWithComputerHandler()
+            case "online":
+                self.playWithOtherButtonHandler()
+            case "help":
+                self.helper_menu()
+
+
 ## load text to TTS queue
 def speak(sentence, importance=False, dialog=False):
     global previous_sentence
@@ -1551,27 +1574,86 @@ def speak(sentence, importance=False, dialog=False):
     else:
         print("no speak engine")
 
-def voiceInput():
-    print("Ctrl S is pressed")
-    voice_thread.voice = not voice_thread.voice
+class VoiceInput_Thread(QThread):
 
-def checkVoice():
-    print(voice_thread.output)
+    action_signal = pyqtSignal(str)
+
+    ##auto start and loop until application close
+    def __init__(self):
+        super(VoiceInput_Thread, self).__init__()
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = whisper.load_model("base", device=device)
+        
+        self.audio_input = "test.wav"
+        self.text_output = ""
+        self.activate = False
+        self.daemon = True
+        self.FORMAT = pyaudio.paInt16
+        self.CHANNELS = 1
+        self.RATE = 16000
+        self.CHUNK = 1024
+        self.audio = pyaudio.PyAudio()
+        self.stream = self.audio.open(format=self.FORMAT,
+                channels=self.CHANNELS,
+                rate=self.RATE,
+                input=True,
+                frames_per_buffer=self.CHUNK)
+        self.frames = []
+        self.start()
+
+    def run(self):
+        
+        print("Voice Input function running")
+        voiceInput_running = True
+        while voiceInput_running:
+            while self.activate:
+                print("Recording Voice Input...")
+                data = self.stream.read(self.CHUNK)
+                self.frames.append(data)
+            if self.frames:
+                with wave.open("tmp.wav", 'wb') as wf:
+                    wf.setnchannels(self.CHANNELS)
+                    wf.setsampwidth(self.audio.get_sample_size(self.FORMAT))
+                    wf.setframerate(self.RATE)
+                    wf.writeframes(b''.join(self.frames))
+                self.frames=[]
+                self.activate = False
+                print("Voice Input Ended")
+                print("Speech to Text performing...")
+                self.text_output = self.model.transcribe("computertest.wav", fp16=False)["text"]
+                print(f"Speech to Text finished! Output: {self.text_output}")
+                self.checkAction()
+
+        self.stream.stop_stream()
+        self.stream.close()
+        self.audio.terminate()
+
+    def checkAction(self):
+        print(main_flow_status)
+        ##Check voice instruction
+        if(main_flow_status == Bot_flow_status.setting_status):
+            if(any(words in self.text_output for words in determinant.computer_mode_words)):
+                self.action_signal.emit("computer")
+            elif(any(words in self.text_output for words in determinant.online_mode_words)):
+                self.action_signal.emit("online")
+            else:
+                speak("Sorry, I don't understand your request. Please repeat it again")
+                return
+        elif(main_flow_status == Bot_flow_status.board_init_status):
+            return
+
+
+
 
 if __name__ == "__main__":
-
-    global text
-    text = ""
-
     global speak_thread
     global current_dir
     global previous_sentence
     previous_sentence = ""
 
-    speak_thread = TTSThread()
+    speak_thread = TTSThread()  #activate TTS module
 
-    voice_thread = S2TThread()
-    # speak_thread.start()
     current_dir = os.path.dirname(os.path.realpath(__file__))
 
     app = QApplication(sys.argv)
