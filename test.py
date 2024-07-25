@@ -1,62 +1,93 @@
-import whisper
-import pyaudio
+# Imports the speech recognition library for voice commands
+import speech_recognition as sr
 
-model = whisper.load_model("base")
+# Imports the library for GUI automation
+import pyautogui
 
-# Recording parameters
-FORMAT = pyaudio.paInt16
-CHANNELS = 1
-RATE = 16000
-CHUNK = 1024
+# Imports the webbrowser library to open web pages
+import webbrowser
 
-# Create a PyAudio stream for recording
-p = pyaudio.PyAudio()
-stream = p.open(format=FORMAT,
-channels=CHANNELS,
-rate=RATE,
-input=True,
-frames_per_buffer=CHUNK)
+# Imports the os library for interacting with the operating system
+import os
 
-frames = []
+# Imports Google's Text-to-Speech engine
+from gtts import gTTS
 
-def recording():
-    recording = True
-    while(recording == True):
-        print("Recording started...")
-        data = stream.read(frames)
-        frames.append(data)
-        if(keyboard.is_pressed("r")):
-            recording = False
-    print("Recording Stopped")
-    wave_file = wave.open("test.wav", 'wb')
-    wave_file.setnchannels(CHANNELS)
-    wave_file.setsampwidth(p.get_sample_size(FORMAT))
-    wave_file.setframerate(RATE)
-    wave_file.writeframes(b''.join(frames))
-    wave_file.close()
-    return 0
+# Imports AudioSegment for handling audio files
+from pydub import AudioSegment
 
+# Gets commands from the user
+def listen_for_command():
+    recognizer = sr.Recognizer()
 
-keyboard.add_hotkey("r", recording)
+    # Opens the microphone for listening
+    with sr.Microphone() as source:
+        print('Listening for commands...')
 
-# Register the key press events
-while(True):
-    print("yeahyeah waiting u test")
-    keyboard.wait()
-    
-    result = model.transcribe("test.wav")
+        # Adjusts the recognizer sensitivity to ambient noise
+        recognizer.adjust_for_ambient_noise(source)
 
-    print(result["text"])
-    # Stop and close the PyAudio stream
+        # Listens for the first phrase and extracts the audio
+        audio = recognizer.listen(source)
 
+    try:
+        # Recognizes speech using Google's speech recognition
+        command = recognizer.recognize_google(audio)
+        print("Google Speech Recognition thinks you said: ", command)
 
-# while(keyboard.is_pressed('r')):
-#     print("recording")
-    
-    # result = model.transcribe("h5_g5.mp3")
+        # Returns the recognized command in lowercase
+        return command.lower()
+    #except' catches specific exceptions that the 'try' block may encounter.
+    except sr.UnknownValueError:
+        print("Google Speech Recognition could not understand audio")
+        return None
+    #except' catches specific exceptions that the 'try' block may encounter.
+    except sr.RequestError as e:
+        print(f"Could not request results from Google Speech Recognition service; {e}")
+        return None
 
-    # print(result["text"])
+# Converts text to speech
+def text_to_speech(response_text):
+    print(response_text)
+    tts = gTTS(text=response_text, lang="en")
 
-stream.stop_stream()
-stream.close()
-p.terminate()
+    # Saves the spoken text to an mp3 file
+    tts.save("response.mp3")
+
+    # Converts the mp3 file to an audio segment
+    sound = AudioSegment.from_mp3("response.mp3")
+
+    # Exports the audio segment as a wav file
+    sound.export("response.wav", format="wav")
+
+    # Plays the wav file using the system's default audio player
+    os.system("afplay response.wav")
+
+# Main function that runs the program
+def main():
+    text_to_speech("Hello What Can I Do For You Today?")
+    while True:
+        # Listens for a voice command
+        command = listen_for_command()
+        if command:
+            # Checks if the command contains certain keywords
+
+            # open chrome if user says open chrome
+            if "open chrome" in command:
+                text_to_speech("Opening Chrome.")
+
+                # Opens Google Chrome to the Google homepage
+                webbrowser.open('http://google.com')
+
+            # exit if user says exit
+            if "exit" in command:
+                text_to_speech("Goodbye.")
+
+                # Breaks the loop, ending the program
+                break
+            else:
+                text_to_speech("Sorry, I don't understand that command.")
+
+# Checks if the script is the main program and runs it
+if __name__ == '__main__':
+    main()

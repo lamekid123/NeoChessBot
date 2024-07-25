@@ -58,3 +58,7 @@ class Speak_template(Enum):
         "You are playing as black. Please wait for your opponent's move."
     )
     user_white_side_sentense = "You are playing as white. Please make your first move."
+
+class determinant:
+    computer_mode_words = ["computer", "pvc"]
+    online_mode_words = ["online", "player", "pvp", "rank"]
