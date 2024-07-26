@@ -272,7 +272,7 @@ class MainWindow(QMainWindow):
                 self.getOpponentMoveTimer.stop()
                 self.check_game_end_timer.stop()
                 self.getScoreTimer.stop()
-                main_flow_status = Bot_flow_status.setting_status
+                self.main_flow_status = Bot_flow_status.setting_status
                 self.input_mode = Input_mode.command_mode
                 self.rightWidget.commandPanel.setAccessibleDescription(
                     "type the letter 'C' for computer mode, type the letter 'O' for online players mode "
@@ -297,7 +297,7 @@ class MainWindow(QMainWindow):
 
                 return
             case Bot_flow_status.board_init_status:
-                main_flow_status = Bot_flow_status.board_init_status
+                self.main_flow_status = Bot_flow_status.board_init_status
 
                 self.leftWidget.chessWebView.loadFinished.connect(
                     partial(print, "connect")
@@ -320,16 +320,16 @@ class MainWindow(QMainWindow):
                 self.check_game_end_timer.start(2000)
                 self.rightWidget.commandPanel.setFocus()
                 self.currentFoucs = len(self.rightWidget.play_menu)
-                main_flow_status = Bot_flow_status.game_play_status
+                self.main_flow_status = Bot_flow_status.game_play_status
                 return
 
     ##initialize a vs computer game for user
     def playWithComputerHandler(self):
-        if main_flow_status == Bot_flow_status.board_init_status:
+        if self.main_flow_status == Bot_flow_status.board_init_status:
             speak("Still " + Speak_template.initialize_game_sentense.value, True)
             return
         if (
-            main_flow_status == Bot_flow_status.game_play_status
+            self.main_flow_status == Bot_flow_status.game_play_status
             and not self.game_flow_status == Game_flow_status.game_end
         ):
             speak("Please resign before start a new game", True)
@@ -347,7 +347,7 @@ class MainWindow(QMainWindow):
 
         def clickNCapture():
             self.leftWidget.chessWebView.loadFinished.disconnect()
-            if not main_flow_status == Bot_flow_status.game_play_status:
+            if not self.main_flow_status == Bot_flow_status.game_play_status:
                 self.capture_screenshot()
 
         if self.leftWidget.userLoginName != None:
@@ -373,11 +373,11 @@ class MainWindow(QMainWindow):
 
     ##initialize a vs online player game for user
     def playWithOtherButtonHandler(self):  ###url
-        if main_flow_status == Bot_flow_status.board_init_status:
+        if self.main_flow_status == Bot_flow_status.board_init_status:
             speak("Still " + Speak_template.initialize_game_sentense.value, True)
             return
         if (
-            main_flow_status == Bot_flow_status.game_play_status
+            self.main_flow_status == Bot_flow_status.game_play_status
             and not self.game_flow_status == Game_flow_status.game_end
         ):
             speak("Please resign before start a new game", True)
@@ -399,7 +399,7 @@ class MainWindow(QMainWindow):
                     self.leftWidget.checkTime(test)
                 else:
                     print("clocks detected :", clocks)
-                    if not main_flow_status == Bot_flow_status.game_play_status:
+                    if not self.main_flow_status == Bot_flow_status.game_play_status:
                         QTimer.singleShot(3000, self.capture_screenshot)
                         # self.capture_screenshot()
 
@@ -655,14 +655,15 @@ class MainWindow(QMainWindow):
             self.rightWidget.check_position.clear()
             return
 
-    ## interpret the input command and perform different task accordingly
-    def CommandPanelHandler(self):
-        def focus_back():
+    def focus_back(self):
             if self.input_mode == Input_mode.arrow_mode:
                 self.leftWidget.grids[self.currentFoucs].setFocus()
             else:
                 self.rightWidget.commandPanel.setFocus()
             return
+    
+    ## interpret the input command and perform different task accordingly
+    def CommandPanelHandler(self):
 
         input = self.rightWidget.commandPanel.text().lower()
 
@@ -674,7 +675,7 @@ class MainWindow(QMainWindow):
             self.playWithOtherButtonHandler()
             self.rightWidget.commandPanel.clear()
             return
-        match main_flow_status:
+        match self.main_flow_status:
             # case Bot_flow_status.setting_status:
             #     if input == "computer":
             #         self.playWithComputerHandler()
@@ -786,92 +787,96 @@ class MainWindow(QMainWindow):
                     self.rightWidget.commandPanel.clear()
                     return
                 if self.game_flow_status == Game_flow_status.user_turn:
-                    movePair = self.chessBoard.moveWithValidate(input)
-                    # check_win = self.chessBoard.detect_win()
-
-                    print(self.chessBoard.board_object)
-                    san_string = ""
-                    uci_string = ""
-                    human_string = ""
-                    if len(movePair) == 2:
-                        uci_string = movePair[0]
-                        san_string = movePair[1]
-                        human_string = self.move_to_human_form(
-                            self.userColor, uci_string, san_string
-                        )
-
-                        # movePair = movePair[0]
-
-                    if len(uci_string) == 5:
-                        target = uci_string[:2]
-                        dest = uci_string[2:4]
-                        promoteTo = (
-                            san_string[san_string.index("=") + 1].__str__().lower()
-                        )
-                        promote_index = list(PIECE_TYPE_CONVERSION).index(promoteTo)
-
-                        # dlg = confirmMoveDialog("pawn", dest, promote=promoteTo)
-                        dlg = confirmDialog(human_string)
-                        if dlg.exec():
-                            self.all_grids_switch(False)
-                            targetWidget = self.leftWidget.grids[target]
-                            destWidget = self.leftWidget.grids[dest]
-                            if widgetDragDrop(targetWidget, destWidget):
-                                match self.userColor:
-                                    case "BLACK":
-                                        place = str(dest[0]) + str(
-                                            int(dest[1]) + promote_index
-                                        )
-                                    case "WHITE":
-                                        place = str(dest[0]) + str(
-                                            int(dest[1]) - promote_index
-                                        )
-                                promoteWidget = self.leftWidget.grids[place]
-                                if widgetClick(promoteWidget):
-                                    self.rightWidget.commandPanel.clear()
-                                    QTimer.singleShot(1000, focus_back)
-                                    self.getOpponentMoveTimer.start(1000)
-                        else:
-                            self.chessBoard.board_object.pop()
-                            self.rightWidget.commandPanel.clear()
-                            print("Cancel!")
-
-                    elif len(uci_string) == 4:
-                        target = uci_string[:2]
-
-                        dest = uci_string[2:4]
-                        target_type = PIECE_TYPE_CONVERSION.get(
-                            self.chessBoard.check_grid(dest).__str__().lower()
-                        )
-                        # dlg = confirmMoveDialog(target_type, dest)
-                        dlg = confirmDialog(human_string)
-                        if dlg.exec():
-                            self.all_grids_switch(False)
-                            # QTimer.singleShot(3000, partial(self.clickStart,input))
-                            # print(self.chessBoard.board_object)
-
-                            targetWidget = self.leftWidget.grids[target]
-                            destWidget = self.leftWidget.grids[dest]
-                            self.rightWidget.commandPanel.clear()
-                            if widgetDragDrop(targetWidget, destWidget):
-                                QTimer.singleShot(1000, focus_back)
-                                self.getOpponentMoveTimer.start(1000)
-                        else:
-                            self.chessBoard.board_object.pop()
-                            self.rightWidget.commandPanel.clear()
-                            print("Cancel!")
-                    elif movePair == "Promotion":
-                        print("Promotion")
-                        speak(
-                            "Please indicate the promotion piece by typing the first letter"
-                        )
-                        self.rightWidget.commandPanel.setFocus()
-                    else:
-                        speak(input + movePair)
-                        print(input + movePair)  ##error move speak
-                        self.rightWidget.commandPanel.clear()
+                    self.move_piece(input)
                 else:
                     speak("Please wait for your opponent's move")
+    
+    def move_piece(self, input):
+
+        movePair = self.chessBoard.moveWithValidate(input)
+        # check_win = self.chessBoard.detect_win()
+
+        print(self.chessBoard.board_object)
+        san_string = ""
+        uci_string = ""
+        human_string = ""
+        if len(movePair) == 2:
+            uci_string = movePair[0]
+            san_string = movePair[1]
+            human_string = self.move_to_human_form(
+                self.userColor, uci_string, san_string
+            )
+
+            # movePair = movePair[0]
+
+        if len(uci_string) == 5:
+            target = uci_string[:2]
+            dest = uci_string[2:4]
+            promoteTo = (
+                san_string[san_string.index("=") + 1].__str__().lower()
+            )
+            promote_index = list(PIECE_TYPE_CONVERSION).index(promoteTo)
+
+            # dlg = confirmMoveDialog("pawn", dest, promote=promoteTo)
+            dlg = confirmDialog(human_string)
+            if dlg.exec():
+                self.all_grids_switch(False)
+                targetWidget = self.leftWidget.grids[target]
+                destWidget = self.leftWidget.grids[dest]
+                if widgetDragDrop(targetWidget, destWidget):
+                    match self.userColor:
+                        case "BLACK":
+                            place = str(dest[0]) + str(
+                                int(dest[1]) + promote_index
+                            )
+                        case "WHITE":
+                            place = str(dest[0]) + str(
+                                int(dest[1]) - promote_index
+                            )
+                    promoteWidget = self.leftWidget.grids[place]
+                    if widgetClick(promoteWidget):
+                        self.rightWidget.commandPanel.clear()
+                        QTimer.singleShot(1000, self.focus_back)
+                        self.getOpponentMoveTimer.start(1000)
+            else:
+                self.chessBoard.board_object.pop()
+                self.rightWidget.commandPanel.clear()
+                print("Cancel!")
+
+        elif len(uci_string) == 4:
+            target = uci_string[:2]
+
+            dest = uci_string[2:4]
+            target_type = PIECE_TYPE_CONVERSION.get(
+                self.chessBoard.check_grid(dest).__str__().lower()
+            )
+            # dlg = confirmMoveDialog(target_type, dest)
+            dlg = confirmDialog(human_string)
+            if dlg.exec():
+                self.all_grids_switch(False)
+                # QTimer.singleShot(3000, partial(self.clickStart,input))
+                # print(self.chessBoard.board_object)
+
+                targetWidget = self.leftWidget.grids[target]
+                destWidget = self.leftWidget.grids[dest]
+                self.rightWidget.commandPanel.clear()
+                if widgetDragDrop(targetWidget, destWidget):
+                    QTimer.singleShot(1000, self.focus_back)
+                    self.getOpponentMoveTimer.start(1000)
+            else:
+                self.chessBoard.board_object.pop()
+                self.rightWidget.commandPanel.clear()
+                print("Cancel!")
+        elif movePair == "Promotion":
+            print("Promotion")
+            speak(
+                "Please indicate the promotion piece by typing the first letter"
+            )
+            self.rightWidget.commandPanel.setFocus()
+        else:
+            speak(input + movePair)
+            print(input + movePair)  ##error move speak
+            self.rightWidget.commandPanel.clear()
 
     ##check game end, sync with mirrored chess board and announce opponent's move
     def announceMove(self, sanString):
@@ -1271,7 +1276,7 @@ class MainWindow(QMainWindow):
     ##switch to arrow mode, only allowd when game started
     def switch_arrow_mode(self):
         print("shortcut ctrl + J pressed")
-        if main_flow_status == Bot_flow_status.game_play_status:
+        if self.main_flow_status == Bot_flow_status.game_play_status:
 
             speak("arrow_mode")
             self.input_mode = Input_mode.arrow_mode
@@ -1288,7 +1293,7 @@ class MainWindow(QMainWindow):
 
     ##arrow key move and speak the square information
     def handle_arrow(self, direction):
-        if not main_flow_status == Bot_flow_status.game_play_status:
+        if not self.main_flow_status == Bot_flow_status.game_play_status:
             return
         file = self.currentFoucs[0]
         rank = self.currentFoucs[1]
@@ -1394,7 +1399,7 @@ class MainWindow(QMainWindow):
     ##tell user different options based on the application status
     def helper_menu(self):
         print("helper")
-        match main_flow_status:
+        match self.main_flow_status:
             case Bot_flow_status.setting_status:
                 speak(Speak_template.setting_state_help_message.value)
                 return
@@ -1418,13 +1423,12 @@ class MainWindow(QMainWindow):
 
     def __init__(self, *args, **kwargs):
         
-        global main_flow_status
         global previous_sentence
-
-        self.VoiceInput_Thread = VoiceInput_Thread() #activate S2T module
 
         self.alphabet = ["A", "B", "C", "D", "E", "F", "G", "H"]
         self.number = ["1", "2", "3", "4", "5", "6", "7", "8"]
+        self.chess_position = [a + b for a in [x.lower() for x in self.alphabet] for b in self.number]
+
         super(MainWindow, self).__init__(*args, **kwargs)
 
         shortcut_F = QShortcut(QKeySequence("Ctrl+F"), self)
@@ -1467,7 +1471,7 @@ class MainWindow(QMainWindow):
         shortcut_O.activated.connect(self.helper_menu)
 
         shortcut_S = QShortcut(QKeySequence("Ctrl+S"), self)
-        shortcut_S.activated.connect(self.voiceInput)
+        shortcut_S.activated.connect(self.voice_input)
 
         self.all_shortcut = {
             "F": shortcut_F,
@@ -1482,7 +1486,7 @@ class MainWindow(QMainWindow):
 
         self.arrow_mode_switch(False)
         ##initialize flow status
-        main_flow_status = Bot_flow_status.setting_status
+        self.main_flow_status = Bot_flow_status.setting_status
         self.game_flow_status = Game_flow_status.not_start
         self.input_mode = Input_mode.command_mode
         self.game_play_mode = None
@@ -1547,20 +1551,29 @@ class MainWindow(QMainWindow):
         self.rightWidget.playWithComputerButton.setFocus()
         self.currentFoucs = 0
         # self.show_information_box()
-        self.VoiceInput_Thread.action_signal.connect(self.Action)
+        voice_input_thread.action_signal.connect(self.Action)
     
-    def voiceInput(self):
+    def voice_input(self):
         print("Ctrl S is pressed")
-        self.VoiceInput_Thread.activate = not self.VoiceInput_Thread.activate
+        voice_input_thread.activate = not voice_input_thread.activate
+        if(voice_input_thread.activate):
+            print("Voice Input activated. Listening...")
+        else:
+            print("Voice Input Ended")
+        
 
     def Action(self, str):
         match(str):
+            case "options":
+                self.helper_menu()
             case "computer":
                 self.playWithComputerHandler()
             case "online":
                 self.playWithOtherButtonHandler()
-            case "help":
-                self.helper_menu()
+            case "move":
+                self.move_piece(voice_input_thread.chess_move)
+            case "resign":
+                self.resign_handler()
 
 
 ## load text to TTS queue
@@ -1575,6 +1588,10 @@ def speak(sentence, importance=False, dialog=False):
         print("no speak engine")
 
 class VoiceInput_Thread(QThread):
+    '''
+    Allow User using Voice Input by record user's audio, perform Speech to Text and
+    determine which action to perform based on the text result
+    '''
 
     action_signal = pyqtSignal(str)
 
@@ -1600,15 +1617,14 @@ class VoiceInput_Thread(QThread):
                 input=True,
                 frames_per_buffer=self.CHUNK)
         self.frames = []
+        self.chess_move = []
         self.start()
 
     def run(self):
-        
         print("Voice Input function running")
         voiceInput_running = True
         while voiceInput_running:
             while self.activate:
-                print("Recording Voice Input...")
                 data = self.stream.read(self.CHUNK)
                 self.frames.append(data)
             if self.frames:
@@ -1619,9 +1635,8 @@ class VoiceInput_Thread(QThread):
                     wf.writeframes(b''.join(self.frames))
                 self.frames=[]
                 self.activate = False
-                print("Voice Input Ended")
                 print("Speech to Text performing...")
-                self.text_output = self.model.transcribe("computertest.wav", fp16=False)["text"]
+                self.text_output = self.model.transcribe("movetest.wav", fp16=False)["text"].lower()
                 print(f"Speech to Text finished! Output: {self.text_output}")
                 self.checkAction()
 
@@ -1630,29 +1645,51 @@ class VoiceInput_Thread(QThread):
         self.audio.terminate()
 
     def checkAction(self):
-        print(main_flow_status)
+        print(f"Current main_flow_status: {window.main_flow_status}")
         ##Check voice instruction
-        if(main_flow_status == Bot_flow_status.setting_status):
+        if(any(words in self.text_output for words in determinant.options_words)):
+            self.action_signal.emit("options")
+
+        if(window.main_flow_status == Bot_flow_status.setting_status):
             if(any(words in self.text_output for words in determinant.computer_mode_words)):
                 self.action_signal.emit("computer")
+
             elif(any(words in self.text_output for words in determinant.online_mode_words)):
                 self.action_signal.emit("online")
+
             else:
                 speak("Sorry, I don't understand your request. Please repeat it again")
+
+            
+        elif(window.main_flow_status == Bot_flow_status.game_play_status):
+            if(any(words in self.text_output for words in determinant.resign_words)):
+                self.action_signal.emit("resign")
                 return
-        elif(main_flow_status == Bot_flow_status.board_init_status):
-            return
-
-
-
+            
+            for moves in window.chess_position:
+                if moves in self.text_output:
+                    self.chess_move.append(moves)
+            print(f"chess move = {self.chess_move}")
+            if(len(self.chess_move)==2):
+                self.chess_move = "".join(self.chess_move[0] + self.chess_move[1])
+                print("move triggered")
+                self.action_signal.emit("move")
+            else:
+                speak("Invalid Input")
+            # if(self.move_action):
+            
+            
+        
 
 if __name__ == "__main__":
     global speak_thread
+    global voice_input_thread
     global current_dir
     global previous_sentence
     previous_sentence = ""
 
     speak_thread = TTSThread()  #activate TTS module
+    voice_input_thread = VoiceInput_Thread()  #activate S2T module
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
 

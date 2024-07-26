@@ -60,5 +60,8 @@ class Speak_template(Enum):
     user_white_side_sentense = "You are playing as white. Please make your first move."
 
 class determinant:
-    computer_mode_words = ["computer", "pvc"]
-    online_mode_words = ["online", "player", "pvp", "rank"]
+    options_words = ["option", "options"]
+    computer_mode_words = ["computer", "computers", "pvc"]
+    online_mode_words = ["online", "player", "players", "pvp", "rank"]
+    move_pieces_words = ["move", "take", "takes", "promote"]
+    resign_words = ["resign", "give up", "quit", "end", "surrender"]
