@@ -25,6 +25,7 @@ from Components.board_detection_component import detectChessboard, userColor    
 from Components.piece_move_component import widgetDragDrop, widgetClick
 from Components.chess_validation_component import ChessBoard
 from Components.speak_component import TTSThread
+from Components.stockfish_component import stockfish_adviser
 from Utils.enum_helper import (
     Input_mode,
     Bot_flow_status,
@@ -38,6 +39,8 @@ import pyaudio
 import wave
 import whisper
 import torch
+
+import js_function
 
 PIECE_TYPE_CONVERSION = {
     "q": "queen",
@@ -791,7 +794,7 @@ class MainWindow(QMainWindow):
                 else:
                     speak("Please wait for your opponent's move")
     
-    def move_piece(self, input):
+    def move_piece(self, input):  ## input store the move command
 
         movePair = self.chessBoard.moveWithValidate(input)
         # check_win = self.chessBoard.detect_win()
@@ -862,6 +865,8 @@ class MainWindow(QMainWindow):
                 self.rightWidget.commandPanel.clear()
                 if widgetDragDrop(targetWidget, destWidget):
                     QTimer.singleShot(1000, self.focus_back)
+                    print(f"before stockfish, uci string: {uci_string}")
+                    self.stockfish.reference_move(uci_string.lower())
                     self.getOpponentMoveTimer.start(1000)
             else:
                 self.chessBoard.board_object.pop()
@@ -893,106 +898,56 @@ class MainWindow(QMainWindow):
             self.getOpponentMoveTimer.stop()
             self.getScoreTimer.start(1000)
             return True
+        
+        print("check none ")
+        if sanString != None:
+            print(sanString)
+            movePair = self.chessBoard.moveWithValidate(sanString)
+            if not len(movePair) == 2:
+                if not crawl_result == None:
+                    self.game_flow_status = Game_flow_status.game_end
+                    self.change_main_flow_status(Bot_flow_status.setting_status)
+                    self.getOpponentMoveTimer.stop()
+                    self.getScoreTimer.start(1000)
+                    speak(crawl_result, True)
+                    return True
+                else:
+                    return False
+            uci_string = movePair[0]
+            san_string = movePair[1]
 
-        match self.opponentColor:
-            case "WHITE":
-                print("check none ", sanString[0] != None)
-                if sanString[0] != None:
-                    print(sanString)
-                    movePair = self.chessBoard.moveWithValidate(sanString[0])
-                    if not len(movePair) == 2:
-                        if not crawl_result == None:
-                            self.game_flow_status = Game_flow_status.game_end
-                            self.change_main_flow_status(Bot_flow_status.setting_status)
-                            self.getOpponentMoveTimer.stop()
-                            self.getScoreTimer.start(1000)
-                            speak(crawl_result, True)
-                            return True
-                        else:
-                            return False
-                    uci_string = movePair[0]
-                    san_string = movePair[1]
+            print(self.chessBoard.board_object)
+            if len(uci_string) <= 5:
+                human_string = self.move_to_human_form(
+                    self.opponentColor, uci_string, san_string
+                )
 
-                    print(self.chessBoard.board_object)
-                    if len(uci_string) <= 5:
-                        human_string = self.move_to_human_form(
-                            self.opponentColor, uci_string, san_string
-                        )
-
-                        check_win = self.chessBoard.detect_win()
-                        print(check_win)
-                        print(crawl_result)
-                        speak(
-                            human_string,
-                            importance=True,
-                        )
-                        self.rightWidget.opponentBox.setText(
-                            "Opponent move: \n" + human_string
-                        )
-                        self.game_flow_status = Game_flow_status.user_turn
-                        if not check_win == "No win detected.":
-                            speak(check_win, True)
-                            self.game_flow_status = Game_flow_status.game_end
-                            self.change_main_flow_status(Bot_flow_status.setting_status)
-                            self.getOpponentMoveTimer.stop()
-                            self.getScoreTimer.start(1000)
-                        if not crawl_result == None:
-                            self.game_flow_status = Game_flow_status.game_end
-                            self.change_main_flow_status(Bot_flow_status.setting_status)
-                            self.getOpponentMoveTimer.stop()
-                            self.getScoreTimer.start(1000)
-                            speak(crawl_result, True)
-                        return True
-            case "BLACK":
-                if sanString and sanString[1] != None:
-                    print(sanString)
-                    movePair = self.chessBoard.moveWithValidate(sanString[1])
-                    if not len(movePair) == 2:
-                        if not crawl_result == None:
-                            self.game_flow_status = Game_flow_status.game_end
-                            self.change_main_flow_status(Bot_flow_status.setting_status)
-                            self.getOpponentMoveTimer.stop()
-                            self.getScoreTimer.start(1000)
-                            speak(crawl_result, True)
-                            return True
-                        else:
-                            return False
-                    uci_string = movePair[0]
-                    san_string = movePair[1]
-
-                    print(self.chessBoard.board_object)
-                    if len(uci_string) <= 5:
-                        human_string = self.move_to_human_form(
-                            self.opponentColor, uci_string, san_string
-                        )
-                        # piece = self.chessBoard.check_grid(dest).__str__()
-                        check_win = self.chessBoard.detect_win()
-                        print(check_win)
-                        print(crawl_result)
-                        speak(
-                            human_string,
-                            importance=True,
-                        )
-                        self.rightWidget.opponentBox.setText(
-                            "Opponent move: \n" + human_string
-                        )
-                        self.game_flow_status = Game_flow_status.user_turn
-                        if not check_win == "No win detected.":
-                            speak(check_win, True)
-                            self.game_flow_status = Game_flow_status.game_end
-                            self.change_main_flow_status(Bot_flow_status.setting_status)
-                            self.getOpponentMoveTimer.stop()
-                            self.getScoreTimer.start(1000)
-                        elif not crawl_result == None:
-                            self.game_flow_status = Game_flow_status.game_end
-                            self.change_main_flow_status(Bot_flow_status.setting_status)
-                            self.getOpponentMoveTimer.stop()
-                            self.getScoreTimer.start(1000)
-                            speak(crawl_result, True)
-                        return True
-
-            case _:
-                return False
+                check_win = self.chessBoard.detect_win()
+                print(check_win)
+                print(crawl_result)
+                speak(
+                    human_string,
+                    importance=True,
+                )
+                self.rightWidget.opponentBox.setText(
+                    "Opponent move: \n" + human_string
+                )
+                self.game_flow_status = Game_flow_status.user_turn
+                if not check_win == "No win detected.":
+                    speak(check_win, True)
+                    self.game_flow_status = Game_flow_status.game_end
+                    self.change_main_flow_status(Bot_flow_status.setting_status)
+                    self.getOpponentMoveTimer.stop()
+                    self.getScoreTimer.start(1000)
+                if not crawl_result == None:
+                    self.game_flow_status = Game_flow_status.game_end
+                    self.change_main_flow_status(Bot_flow_status.setting_status)
+                    self.getOpponentMoveTimer.stop()
+                    self.getScoreTimer.start(1000)
+                    speak(crawl_result, True)
+                return True
+        
+        return False
 
     ##Check whether opponent resigned
     def check_game_end(self):
@@ -1024,34 +979,11 @@ class MainWindow(QMainWindow):
                     else:
                         self.announceMove((win_move, win_move))
 
-        jsCode = """
-            function childImg(move){{
-                let sanString = '';
-                if(!move)
-                    return null
-                for (let i of move?.childNodes){{
-                    sanString+=i?.textContent || i?.getAttribute('data-figurine')
-                }}    
-                return sanString
-            }}
-            function getOpponentMove() {{
-                let moves = document.querySelectorAll('{0}');
-                let move = moves[moves.length-1]
-                if(move?.querySelector('[class*=result]')){{
-                    LastMove = moves[moves.length-1]
-                    if (moves.length != 1){{
-                        move = moves[moves.length-2]
-                    }}
-                    move = move.querySelectorAll('[class~=node]')
-                    return [LastMove?.querySelector('[class*=white]')?.outerText,LastMove?.querySelector('[class*=black]')?.outerText,childImg(move[0]),childImg(move[1])]
-                }}
-                move = move.querySelectorAll('[class~=node]')
-                return [childImg(move[0]),childImg(move[1])]
-            }}
-            getOpponentMove();
-            """.format(
-            ".move"
-        )
+        if(self.userColor=="WHITE"):
+            jsCode = js_function.White_getOpponentMove
+        else:
+            jsCode = js_function.Black_getOpponentMove
+
         self.leftWidget.chessWebView.page().runJavaScript(jsCode, callback)
 
     ##JS to get opponent move SAN
@@ -1062,39 +994,18 @@ class MainWindow(QMainWindow):
         self.game_flow_status = Game_flow_status.opponent_turn
 
         def callback(x):
+            print("javjavjavajvajvajvjavj call calcalcalcalclaclacla")
+            print(f"value = {x}")
             if self.announceMove(x):
                 self.getOpponentMoveTimer.stop()
             else:
                 self.getOpponentMoveTimer.start(1000)
 
-        jsCode = """
-            function childImg(move){{
-                let sanString = '';
-                if(!move)
-                    return null
-                for (let i of move?.childNodes){{
-                    sanString+=i?.textContent || i?.getAttribute('data-figurine')
-                }}    
-                return sanString
-            }}
-            function getOpponentMove() {{
-                let moves = document.querySelectorAll('{0}');
-                let move = moves[moves.length-1]
-                if(move?.querySelector('[class*=result]')){{
-                    LastMove = moves[moves.length-1]
-                    if (moves.length != 1){{
-                        move = moves[moves.length-2]
-                    }}
-                    move = move.querySelectorAll('[class~=node]')
-                    return [childImg(LastMove?.querySelector('[class*=white]')),childImg(LastMove?.querySelector('[class*=black]')),childImg(move[0]),childImg(move[1])]
-                }}
-                move = move.querySelectorAll('[class~=node]')
-                return [childImg(move[0]),childImg(move[1])]
-            }}
-            getOpponentMove();
-            """.format(
-            ".move"
-        )
+        if(self.userColor=="WHITE"):
+            jsCode = js_function.White_getOpponentMove
+        else:
+            jsCode = js_function.Black_getOpponentMove
+
         self.leftWidget.chessWebView.page().runJavaScript(jsCode, callback)
 
     ##JS to click on web view button
@@ -1473,6 +1384,12 @@ class MainWindow(QMainWindow):
         shortcut_S = QShortcut(QKeySequence("Ctrl+S"), self)
         shortcut_S.activated.connect(self.voice_input)
 
+        shortcut_z = QShortcut(QKeySequence("z"), self)
+        shortcut_z.activated.connect(self.stockfish_adviser_caller)
+
+        shortcut_x = QShortcut(QKeySequence("x"), self)
+        shortcut_x.activated.connect(lambda: print(self.game_flow_status))
+
         self.all_shortcut = {
             "F": shortcut_F,
             "J": shortcut_J,
@@ -1495,6 +1412,9 @@ class MainWindow(QMainWindow):
         self.mainWidget = QWidget()
         self.leftWidget = LeftWidget()
         self.rightWidget = RightWidget()
+
+        ##initialize stockfish component for chess move advice 
+        self.stockfish = stockfish_adviser()
 
         def timeCallback(clocks):
             if not clocks == None:
@@ -1574,6 +1494,14 @@ class MainWindow(QMainWindow):
                 self.move_piece(voice_input_thread.chess_move)
             case "resign":
                 self.resign_handler()
+
+    def stockfish_adviser_caller(self):
+        if(self.game_flow_status==Game_flow_status.user_turn):
+            print(self.stockfish.suggested_move())
+            speak(self.stockfish.suggested_move())
+        else:
+            print("You are not playing any chess game")
+
 
 
 ## load text to TTS queue
@@ -1677,8 +1605,6 @@ class VoiceInput_Thread(QThread):
             else:
                 speak("Invalid Input")
             # if(self.move_action):
-            
-            
         
 
 if __name__ == "__main__":
