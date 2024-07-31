@@ -865,8 +865,6 @@ class MainWindow(QMainWindow):
                 self.rightWidget.commandPanel.clear()
                 if widgetDragDrop(targetWidget, destWidget):
                     QTimer.singleShot(1000, self.focus_back)
-                    print(f"before stockfish, uci string: {uci_string}")
-                    self.stockfish.reference_move(uci_string.lower())
                     self.getOpponentMoveTimer.start(1000)
             else:
                 self.chessBoard.board_object.pop()
@@ -988,14 +986,11 @@ class MainWindow(QMainWindow):
 
     ##JS to get opponent move SAN
     def getOpponentMove(self):
-        if self.input_mode == Input_mode.arrow_mode:
-            self.all_grids_switch(True)
-
-        self.game_flow_status = Game_flow_status.opponent_turn
-
         def callback(x):
+
             print("javjavjavajvajvajvjavj call calcalcalcalclaclacla")
             print(f"value = {x}")
+            
             if self.announceMove(x):
                 self.getOpponentMoveTimer.stop()
             else:
@@ -1005,6 +1000,10 @@ class MainWindow(QMainWindow):
             jsCode = js_function.White_getOpponentMove
         else:
             jsCode = js_function.Black_getOpponentMove
+        if self.input_mode == Input_mode.arrow_mode:
+            self.all_grids_switch(True)
+
+        self.game_flow_status = Game_flow_status.opponent_turn
 
         self.leftWidget.chessWebView.page().runJavaScript(jsCode, callback)
 
@@ -1497,8 +1496,9 @@ class MainWindow(QMainWindow):
 
     def stockfish_adviser_caller(self):
         if(self.game_flow_status==Game_flow_status.user_turn):
-            print(self.stockfish.suggested_move())
-            speak(self.stockfish.suggested_move())
+            suggestion = self.stockfish.suggested_move(self.chessBoard.current_board())
+            print(suggestion)
+            speak(suggestion)
         else:
             print("You are not playing any chess game")
 
