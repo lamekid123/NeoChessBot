@@ -12,7 +12,7 @@ name_conversion = {
 
 
 ## a mirrored chessboard that sync with actual web view chessboard
-class ChessBoard:
+class ChessBoard():
     def __init__(self):
         self.board_object = chess.Board()
         print(self.board_object)
@@ -73,6 +73,7 @@ class ChessBoard:
         moveString = "".join(filter(str.isalnum, moveString))
         moveString = moveString.replace(" ", "").replace("null", "").lower()
 
+        print(f"move with validate, moveString = {moveString}")
         ##check coordinate notation
         uciTrial = self.moveByUCI(moveString)
         print("uci Trial trial: ", moveString, " ", uciTrial)
@@ -144,6 +145,6 @@ class ChessBoard:
             return "Insufficient material!"
         else:
             return "No win detected."
-
-
-chessboard_in = ChessBoard()
+        
+    def current_board(self):
+        return self.board_object.fen()
