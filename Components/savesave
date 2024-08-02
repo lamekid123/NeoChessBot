@@ -1,4 +1,0 @@
-x = document.querySelectorAll('.main-line-row')   ##搵moves
-if(x[x.length-1].outerHTML.includes('result')){
-    last_move = x[x.length-2]
-}

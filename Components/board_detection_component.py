@@ -163,3 +163,6 @@ def userColor(image_path):
     center_pixel_color = image[center_y, center_x]
 
     return classify_pixel_color(center_pixel_color)
+
+# def board_to_FEN():
+
