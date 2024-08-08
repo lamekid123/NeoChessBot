@@ -76,7 +76,7 @@ def detectChessboard(webViewPath, viewWidth, viewHeight):
             if all_pass:
                 trust_horizontal = tuples_with_x
                 break
-
+    
     sorted_by_y = sorted(intersect_points, key=lambda x: (x[1], x[0]))
     print(sorted_by_y)
 
@@ -101,8 +101,13 @@ def detectChessboard(webViewPath, viewWidth, viewHeight):
             if all_pass:
                 trust_vertical = tuples_with_y
                 break
+
+    print(trust_horizontal)
+    print(trust_vertical)
+
     upper_left = (trust_vertical[0][0], trust_horizontal[0][1])
     lower_right = (trust_vertical[-1][0], trust_horizontal[-1][1])
+
     # cv2.circle(img, upper_left, 10, (0, 255, 0), -1)
     # cv2.circle(img, lower_right, 10, (0, 0, 255), -1)
 
@@ -126,6 +131,7 @@ def detectChessboard(webViewPath, viewWidth, viewHeight):
     # cv2.imshow("lines.jpg", img)
     # cv2.waitKey(0)
     # cv2.destroyAllWindows()
+    
     return (
         int(upper_left[0] * widthFactor),
         int(upper_left[1] * heightFactor),
@@ -163,6 +169,3 @@ def userColor(image_path):
     center_pixel_color = image[center_y, center_x]
 
     return classify_pixel_color(center_pixel_color)
-
-# def board_to_FEN():
-

@@ -13,10 +13,11 @@ name_conversion = {
 
 ## a mirrored chessboard that sync with actual web view chessboard
 class ChessBoard():
-    def __init__(self):
-        self.board_object = chess.Board()
+    def __init__(self, fen=None):
+        self.board_object = chess.Board() if(fen==None) else chess.Board(fen)
         print(self.board_object)
         print()
+
 
     def moveByUCI(self, uciString):
         """

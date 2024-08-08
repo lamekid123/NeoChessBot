@@ -22,7 +22,7 @@ from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QIcon
 
 
 from Components.board_detection_component import detectChessboard, userColor        ## header file
-from Components.piece_move_component import widgetDragDrop, widgetClick
+from Components.piece_move_component import widgetDragDrop, widgetClick, moveLeft, moveRight, moveUp, moveDown, moveTopLeft, moveBottomLeft, moveBottomRight, moveTopRight 
 from Components.chess_validation_component import ChessBoard
 from Components.speak_component import TTSThread
 from Components.stockfish_component import stockfish_adviser
@@ -41,7 +41,6 @@ import whisper
 import torch
 
 import js_function
-import time
 
 PIECE_TYPE_CONVERSION = {
     "q": "queen",
@@ -51,6 +50,17 @@ PIECE_TYPE_CONVERSION = {
     "p": "pawn",
     "k": "king",
     "none": "empty",
+}
+
+CHESSBOARD_LOCATION_CONVERSION = {
+    "a": "1",
+    "b": "2",
+    "c": "3",
+    "d": "4",
+    "e": "5",
+    "f": "6",
+    "g": "7",
+    "h": "8",
 }
 
 
@@ -449,10 +459,9 @@ class MainWindow(QMainWindow):
         self.game_play_mode = Game_play_mode.puzzle_mode
         self.main_flow_status = self.change_main_flow_status(Bot_flow_status.board_init_status)
         self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/puzzles/rated"))
-        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(1000, self.puzzle_mode_InitBoard))
+        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(2000, self.puzzle_mode_InitBoard))
 
     def puzzle_mode_InitBoard(self):
-        self.main_flow_status = self.change_main_flow_status(Bot_flow_status.board_init_status)
         # self.initBoard()
         self.puzzle_mode_GetTitle()
         self.puzzle_mode_ConstructBoard()
@@ -506,6 +515,9 @@ class MainWindow(QMainWindow):
                 match title:
                     case "Correct":
                         print("Correct")
+                        self.userColor = None
+                        self.game_flow_status = self.change_main_flow_status(Bot_flow_status.board_init_status)
+                        self.clickNextPuzzle()
                     #button click next
                     case "Incorrect":
                         print("Incorrect, puzzle run ended")
@@ -778,9 +790,13 @@ class MainWindow(QMainWindow):
             return
         if self.game_play_mode == Game_play_mode.puzzle_mode:
             if self.game_flow_status == Game_flow_status.user_turn:
-                self.puzzle_mode_GetTitle()
+                self.puzzle_movePiece(input)
+                QTimer.singleShot(2000, self.puzzle_mode_GetTitle)
             else:
                 speak("Please wait for your opponent's move")
+            self.rightWidget.commandPanel.clear()
+            return
+        
         match self.main_flow_status:
             # case Bot_flow_status.setting_status:
             #     if input == "computer":
@@ -1488,6 +1504,9 @@ class MainWindow(QMainWindow):
         shortcut_F2 = QShortcut(QKeySequence("Ctrl+2"), self)
         shortcut_F2.activated.connect(self.playWithOtherButtonHandler)
 
+        shortcut_F3 = QShortcut(QKeySequence("Ctrl+3"), self)
+        shortcut_F3.activated.connect(self.puzzleModeHandler)
+
         shortcut_R = QShortcut(QKeySequence("Ctrl+R"), self)
         shortcut_R.activated.connect(self.repeat_previous)
 
@@ -1502,19 +1521,6 @@ class MainWindow(QMainWindow):
 
         shortcut_c = QShortcut(QKeySequence("c"), self)
         shortcut_c.activated.connect(lambda: print(f"current main flow status: {self.main_flow_status}"))
-
-        shortcut_v = QShortcut(QKeySequence("v"), self)
-        shortcut_v.activated.connect(self.puzzle_mode_InitBoard)
-
-        shortcut_b = QShortcut(QKeySequence("b"), self)
-        shortcut_b.activated.connect(self.puzzle_mode_GetTitle)
-
-        shortcut_n = QShortcut(QKeySequence("n"), self)
-        shortcut_n.activated.connect(self.puzzle_mode_GetMove)
-
-        shortcut_g = QShortcut(QKeySequence("g"), self)
-        shortcut_g.activated.connect(lambda: print(self.leftWidget.grids))
-
 
         self.all_shortcut = {
             "F": shortcut_F,
@@ -1680,7 +1686,61 @@ class MainWindow(QMainWindow):
                         self.default_bot()
                     case Game_play_mode.online_mode:
                         self.online30min()
-            
+    
+    def puzzle_movePiece(self, move):
+        def callback(pos):
+            print(pos)
+            x = pos[0]
+            y = pos[1]
+            interval = pos[2]
+            if self.userColor=="WHITE":
+                if(dest[0]>src[0] and dest[1]==src[1]):    
+                    moveRight(x, y, x_scale, interval)
+                elif(dest[0]<src[0] and dest[1]==src[1]):
+                    moveLeft(x, y, x_scale, interval)
+                elif(dest[0]==src[0] and dest[1]>src[1]):
+                    moveUp(x, y, y_scale, interval)
+                elif(dest[0]==src[0] and dest[1]<src[1]):
+                    moveDown(x, y, y_scale, interval)
+                elif(dest[0]>src[0] and dest[1]>src[1]):
+                    moveTopRight(x, y, x_scale, y_scale, interval)
+                elif(dest[0]>src[0] and dest[1]<src[1]):
+                    moveBottomRight(x, y, x_scale, y_scale, interval)
+                elif(dest[0]<src[0] and dest[1]>src[1]):
+                    moveTopLeft(x, y, x_scale, y_scale, interval)
+                elif(dest[0]<src[0] and dest[1]<src[1]):
+                    moveBottomLeft(x, y, x_scale, y_scale, interval)
+            else:
+                if(dest[0]<src[0] and dest[1]==src[1]):    
+                    moveRight(x, y, x_scale, interval)
+                elif(dest[0]>src[0] and dest[1]==src[1]):
+                    moveLeft(x, y, x_scale, interval)
+                elif(dest[0]==src[0] and dest[1]<src[1]):
+                    moveUp(x, y, y_scale, interval)
+                elif(dest[0]==src[0] and dest[1]>src[1]):
+                    moveDown(x, y, y_scale, interval)
+                elif(dest[0]<src[0] and dest[1]<src[1]):
+                    moveTopRight(x, y, x_scale, y_scale, interval)
+                elif(dest[0]<src[0] and dest[1]>src[1]):
+                    moveBottomRight(x, y, x_scale, y_scale, interval)
+                elif(dest[0]>src[0] and dest[1]<src[1]):
+                    moveTopLeft(x, y, x_scale, y_scale, interval)
+                elif(dest[0]>src[0] and dest[1]>src[1]):
+                    moveBottomLeft(x, y, x_scale, y_scale, interval)
+
+        src = move[0] + move[1]
+        dest = move[2] + move [3]
+        loc = CHESSBOARD_LOCATION_CONVERSION[src[0]] + src[1]
+        x_scale = abs(ord(dest[0])-ord(src[0]))
+        y_scale = abs(int(dest[1])-int(src[1]))
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.getCoordinate + f"getCoordinate({loc})", callback)
+
+    def clickNextPuzzle(self):
+        def callback(x):
+            QTimer.singleShot(2000, self.puzzle_mode_GetTitle)
+
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.clickNextPuzzle, callback)
+
 
 ## load text to TTS queue
 def speak(sentence, importance=False, dialog=False):
