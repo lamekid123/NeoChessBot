@@ -41,6 +41,7 @@ import whisper
 import torch
 
 import js_function
+import time
 
 PIECE_TYPE_CONVERSION = {
     "q": "queen",
@@ -154,11 +155,14 @@ class RightWidget(QWidget):
             "press enter to play with computer engine"
         )
         
-        self.playWithOtherButton = QPushButton("Play with other online player ")
+        self.playWithOtherButton = QPushButton("Play with other online player")
         self.playWithOtherButton.setAccessibleName("Play with other online player")
         self.playWithOtherButton.setAccessibleDescription(
             "press enter to play with other online player"
         )
+
+        self.puzzleModeButton = QPushButton("Puzzle Mode")
+
         self.playWithComputerButton.setAutoDefault(True)
         self.playWithOtherButton.setAutoDefault(True)
 
@@ -195,6 +199,7 @@ class RightWidget(QWidget):
         self.setting_menu = []
         self.setting_menu.append(self.playWithComputerButton)
         self.setting_menu.append(self.playWithOtherButton)
+        self.setting_menu.append(self.puzzleModeButton)
 
         self.play_menu = []
         self.play_menu.append(self.colorBox)
@@ -257,6 +262,9 @@ class MainWindow(QMainWindow):
     Control the application status, implement functionality to left and right widget.\n
     Handle all logic operation
     """
+
+    puzzle_getOppMove_sgn = pyqtSignal()
+
     def show_information_box(self):
         message_box = QMessageBox()
         message_box.setIcon(QMessageBox.Icon.Information)
@@ -275,6 +283,7 @@ class MainWindow(QMainWindow):
                 self.check_game_end_timer.stop()
                 self.getScoreTimer.stop()
                 self.main_flow_status = Bot_flow_status.setting_status
+                self.game_flow_status = Game_flow_status.not_start
                 self.input_mode = Input_mode.command_mode
                 self.rightWidget.commandPanel.setAccessibleDescription(
                     "type the letter 'C' for computer mode, type the letter 'O' for online players mode "
@@ -348,12 +357,14 @@ class MainWindow(QMainWindow):
             QUrl("https://www.chess.com/play/computer/komodo1")
         )
 
-        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(2000, self.is_previous_game_exist))
+        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(2000, self.check_ExistGame))
 
     def default_bot(self):
         def clickNCapture():
             if not self.main_flow_status == Bot_flow_status.game_play_status:
-                self.capture_screenshot()
+                self.initBoard()
+                self.getColor()
+                self.getBoard()
         
         if self.leftWidget.userLoginName != None:
             self.clickWebButton(
@@ -399,11 +410,13 @@ class MainWindow(QMainWindow):
                 else:
                     print("clocks detected :", clocks)
                     if not self.main_flow_status == Bot_flow_status.game_play_status:
-                        QTimer.singleShot(3000, self.capture_screenshot)
-                        # self.capture_screenshot()
+                        # QTimer.singleShot(3000, self.initBoard)
+                        self.initBoard()
+                        self.getColor()
+                        self.getBoard()
 
             self.leftWidget.checkTime(test)
-            # self.capture_screenshot()
+            # self.initBoard()
 
         if self.leftWidget.userLoginName != None:
             print("login name", self.leftWidget.userLoginName)
@@ -431,6 +444,101 @@ class MainWindow(QMainWindow):
                 clickNCapture,
                 0,
             )
+
+    def puzzleModeHandler(self):
+        self.game_play_mode = Game_play_mode.puzzle_mode
+        self.main_flow_status = self.change_main_flow_status(Bot_flow_status.board_init_status)
+        self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/puzzles/rated"))
+        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(1000, self.puzzle_mode_InitBoard))
+
+    def puzzle_mode_InitBoard(self):
+        self.main_flow_status = self.change_main_flow_status(Bot_flow_status.board_init_status)
+        # self.initBoard()
+        self.puzzle_mode_GetTitle()
+        self.puzzle_mode_ConstructBoard()
+
+    def puzzle_mode_ConstructBoard(self):
+        def callback(board):
+            self.puzzle_FenNotation = ""
+            for row in reversed(range(8)):
+                count = 0
+                for column in range(8):
+                    if(board[row][column]!=0):
+                        if(count!=0):
+                            self.puzzle_FenNotation += str(count) + board[row][column]
+                            count = 0
+                        else:
+                            self.puzzle_FenNotation += board[row][column]
+                    else:
+                        count += 1
+                        if(column==7):
+                            self.puzzle_FenNotation += str(count)
+                    print(board[row][column], end=" ")
+                if(row!=0):
+                    self.puzzle_FenNotation += "/"
+                print()
+            if(self.userColor=="WHITE"):
+                self.puzzle_FenNotation += " w"
+            else:
+                self.puzzle_FenNotation += " b"
+            print(self.puzzle_FenNotation)
+            self.chessBoard = ChessBoard(self.puzzle_FenNotation)
+            self.change_main_flow_status(Bot_flow_status.game_play_status)
+            self.game_flow_status = Game_flow_status.user_turn
+            self.puzzle_mode_GetTitle()
+
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.puzzle_mode_constructBoard, callback)
+
+
+    def puzzle_mode_GetTitle(self):
+        def callback(title):
+            if(self.userColor == None):
+                match title:
+                    case "White":
+                        self.userColor = title.upper()
+                        self.opponentColor = "BLACK"
+                        print(f"User: {self.userColor}, Oppoenent: {self.opponentColor}")
+                    case "Black":
+                        self.userColor = title.upper()
+                        self.opponentColor = "WHITE"
+                        print(f"User: {self.userColor}, Oppoenent: {self.opponentColor}")
+            else:
+                match title:
+                    case "Correct":
+                        print("Correct")
+                    #button click next
+                    case "Incorrect":
+                        print("Incorrect, puzzle run ended")
+                        self.change_main_flow_status(Bot_flow_status.setting_status)
+                    case "White":
+                        self.puzzle_getOppMove_sgn.emit()
+                    case "Black":
+                        self.puzzle_getOppMove_sgn.emit() 
+
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.puzzle_mode_GetTitle, callback)
+
+    def puzzle_mode_GetMove(self):
+        def callback(uci_move):
+            print(uci_move)
+            pos1 = uci_move[0] + uci_move[1]
+            pos2 = uci_move[2] + uci_move[3]
+            pos1_piece = self.chessBoard.check_grid(pos1)
+            if(pos1_piece!=None):
+                dest = pos1
+                src = pos2
+            else:
+                dest = pos2
+                src = pos1
+                
+            print(f"Opponent Move {src} to {dest}")
+            if(self.game_flow_status == Game_flow_status.opponent_turn):
+                self.chessBoard.moveWithValidate(uci_move)
+                self.game_flow_status = Game_flow_status.user_turn
+            else:
+                print("no update move")
+                return
+
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.puzzle_mode_GetOpponentMove, callback)
 
     ##convert move to human readable form
     def move_to_human_form(self, attackerColor, uciString, sanString):
@@ -668,6 +776,11 @@ class MainWindow(QMainWindow):
             self.playWithOtherButtonHandler()
             self.rightWidget.commandPanel.clear()
             return
+        if self.game_play_mode == Game_play_mode.puzzle_mode:
+            if self.game_flow_status == Game_flow_status.user_turn:
+                self.puzzle_mode_GetTitle()
+            else:
+                speak("Please wait for your opponent's move")
         match self.main_flow_status:
             # case Bot_flow_status.setting_status:
             #     if input == "computer":
@@ -1100,40 +1213,43 @@ class MainWindow(QMainWindow):
                 grid.hide()
 
     ##computer vision to detect the chessboard
-    def capture_screenshot(self, retry=3):
-        if retry <= 0:
+    def initBoard(self, retry=0):
+        if retry > 3:
             speak("board detection error, retry initialize", True)
             if self.game_play_mode == Game_play_mode.computer_mode:
                 self.playWithComputerHandler()
-            else:
+            elif(self.game_play_mode == Game_play_mode.online_mode):
                 self.playWithOtherButtonHandler()
+            else:
+                self.puzzleModeHandler()
             return
-
-        try:
-            file_path = os.path.join(current_dir, "Tmp", "board_screenshot.png")
-            # file_path = "./widget_screenshot.png"
-            screenshot = self.leftWidget.chessWebView.grab()
-            screenshot.save(file_path)
-            print("cap here")
-            viewWidth = self.leftWidget.chessWebView.width()
-            viewHeight = self.leftWidget.chessWebView.height()
-            x, y, w, h = detectChessboard(file_path, viewWidth, viewHeight)
-        except Exception as e:
-            print("error retry", e)
-            retry = retry - 1
-            QTimer.singleShot(2000, partial(self.capture_screenshot, retry))
-            return
-
-        x = int(x)
-        y = int(y)
-        w = int((w / 8))
-        h = int((h / 8))
-        print(x, y, w, h)
+        
+        x = None
+        while(x is None and retry<50):
+            try:
+                file_path = os.path.join(current_dir, "Tmp", "board_screenshot.png")
+                # file_path = "./widget_screenshot.png"
+                screenshot = self.leftWidget.chessWebView.grab()
+                screenshot.save(file_path)
+                print("cap here")
+                viewWidth = self.leftWidget.chessWebView.width()
+                viewHeight = self.leftWidget.chessWebView.height()
+                x, y, w, h = detectChessboard(file_path, viewWidth, viewHeight)
+            except Exception as e:
+                print("error retry", e)
+                retry = retry + 1
+                # QTimer.singleShot(2000, partial(self.initBoard, retry))
+                
+        self.board_x = int(x)
+        self.board_y = int(y)
+        self.board_w = int((w / 8))
+        self.board_h = int((h / 8))
+        print(f"x: {self.board_x}, y: {self.board_y}, w: {self.board_w}, h: {self.board_h}")
 
         for row in range(8):
             for col in range(8):
                 label = QLabel(self.leftWidget)
-                label.setGeometry(x + col * w, y + row * h, w, h)
+                label.setGeometry(self.board_x + col * self.board_w, self.board_y + row * self.board_h, self.board_w, self.board_h)
                 # if (row + col) % 2 == 0:
                 #     label.setStyleSheet("background-color: rgba(0, 0, 255, 100);")
                 # else:
@@ -1141,13 +1257,14 @@ class MainWindow(QMainWindow):
                 self.leftWidget.grids[row.__str__() + col.__str__()] = label
                 label.show()
                 # label.hide()  # comment this to check whether the board detect success
-
+        
+    def getColor(self):
         user_rook_file = os.path.join(current_dir, "Tmp", "color_detection_user.png")
 
         user_rook = self.leftWidget.grids["77"]
 
         self.leftWidget.chessWebView.grab(
-            QRect(user_rook.x(), user_rook.y(), w, h)
+            QRect(user_rook.x(), user_rook.y(), self.board_w, self.board_h)
         ).save(user_rook_file)
 
         color = userColor(user_rook_file)
@@ -1164,8 +1281,6 @@ class MainWindow(QMainWindow):
             self.number.reverse()
             speak(Speak_template.user_white_side_sentense.value)
             self.game_flow_status = Game_flow_status.user_turn
-
-        self.getBoard()
 
     ##switch to command mode
     def switch_command_mode(self):
@@ -1343,6 +1458,9 @@ class MainWindow(QMainWindow):
         shortcut_J = QShortcut(QKeySequence("Ctrl+J"), self)
         shortcut_J.activated.connect(self.switch_arrow_mode)
 
+        shortcut_S = QShortcut(QKeySequence("Ctrl+S"), self)
+        shortcut_S.activated.connect(self.voice_input)
+
         shortcut_UP = QShortcut(QKeySequence(Qt.Key.Key_Up), self)
         shortcut_UP.activated.connect(partial(self.handle_arrow, "UP"))
 
@@ -1376,9 +1494,6 @@ class MainWindow(QMainWindow):
         shortcut_O = QShortcut(QKeySequence("Ctrl+O"), self)
         shortcut_O.activated.connect(self.helper_menu)
 
-        shortcut_S = QShortcut(QKeySequence("Ctrl+S"), self)
-        shortcut_S.activated.connect(self.voice_input)
-
         shortcut_z = QShortcut(QKeySequence("z"), self)
         shortcut_z.activated.connect(self.stockfish_adviser_caller)
 
@@ -1389,7 +1504,16 @@ class MainWindow(QMainWindow):
         shortcut_c.activated.connect(lambda: print(f"current main flow status: {self.main_flow_status}"))
 
         shortcut_v = QShortcut(QKeySequence("v"), self)
-        shortcut_v.activated.connect(self.puzzlemode_GetBoard)
+        shortcut_v.activated.connect(self.puzzle_mode_InitBoard)
+
+        shortcut_b = QShortcut(QKeySequence("b"), self)
+        shortcut_b.activated.connect(self.puzzle_mode_GetTitle)
+
+        shortcut_n = QShortcut(QKeySequence("n"), self)
+        shortcut_n.activated.connect(self.puzzle_mode_GetMove)
+
+        shortcut_g = QShortcut(QKeySequence("g"), self)
+        shortcut_g.activated.connect(lambda: print(self.leftWidget.grids))
 
 
         self.all_shortcut = {
@@ -1439,6 +1563,10 @@ class MainWindow(QMainWindow):
             self.playWithOtherButtonHandler
         )
 
+        self.rightWidget.puzzleModeButton.clicked.connect(
+            self.puzzleModeHandler
+        )
+
         self.rightWidget.resign.clicked.connect(self.resign_handler)
 
         self.rightWidget.commandPanel.returnPressed.connect(self.CommandPanelHandler)
@@ -1473,6 +1601,7 @@ class MainWindow(QMainWindow):
         self.rightWidget.playWithComputerButton.setFocus()
         self.currentFoucs = 0
         # self.show_information_box()
+        self.puzzle_getOppMove_sgn.connect(self.puzzle_mode_GetMove)
         voice_input_thread.action_signal.connect(self.Action)
     
     def voice_input(self):
@@ -1492,41 +1621,47 @@ class MainWindow(QMainWindow):
                 self.playWithComputerHandler()
             case "online":
                 self.playWithOtherButtonHandler()
+            case "puzzle":
+                self.puzzleModeHandler()
             case "move":
                 self.movePiece(voice_input_thread.chess_move)
             case "resign":
                 self.resign_handler()
 
     def stockfish_adviser_caller(self):
-        if(self.game_flow_status==Game_flow_status.user_turn):
-            suggestion = self.stockfish.suggested_move(self.chessBoard.current_board())
-            print(suggestion)
-            speak(suggestion)
+        if(self.main_flow_status == Bot_flow_status.game_play_status):
+            if(self.game_flow_status == Game_flow_status.user_turn):
+                suggestion = self.stockfish.suggested_move(self.chessBoard.current_board())
+                print(suggestion)
+                speak(suggestion)
+            else:
+                print("Please wait for opponent finish their move")
         else:
             print("You are not playing any chess game")
 
-    def check_OngoingGame(self):
+    def check_ExistGame(self):
         def callback(moveList):
             print(f"movemovmeomvomeovmo = {moveList}")
             if(moveList):
-                self.capture_screenshot()
+                self.initBoard()
+                self.getColor()
+                self.getBoard()
                 print("reconstructing the board")
                 for move in moveList:
                     self.moveList.append(move)
                     self.chessBoard.moveWithValidate(move)
                 
-                print("previous game exist") 
+                print("Existing Game Founded") 
             else:
-                print("no ongoing board")
+                print("no existing board")
 
-        # self.game_flow_status = Game_flow_status.opponent_turn
-            
+            self.is_previous_game_exist()
 
-        self.leftWidget.chessWebView.page().runJavaScript(js_function.check_OnGoing, callback)
+        self.leftWidget.chessWebView.loadFinished.disconnect()
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.check_ExistGame, callback)
 
     def is_previous_game_exist(self):
-            self.leftWidget.chessWebView.loadFinished.disconnect()
-            self.check_OngoingGame()
+            # self.check_ExistGame()
             print(f"movelist = {self.moveList}")
             if(self.moveList):
                 self.previous_game_exist = True
@@ -1535,7 +1670,9 @@ class MainWindow(QMainWindow):
             else:
                 self.previous_game_exist = False
             
+            print(self.previous_game_exist)
             if(self.previous_game_exist):
+                print("check end")
                 return
             else:
                 match(self.game_play_mode):
@@ -1543,30 +1680,7 @@ class MainWindow(QMainWindow):
                         self.default_bot()
                     case Game_play_mode.online_mode:
                         self.online30min()
-    
-    def puzzlemode_GetBoard(self):
-        def callback(x):
-            self.puzzle_FenNotation = ""
-            for i in reversed(range(8)):
-                tmp = 0
-                for j in range(8):
-                    if(x[i][j]!=0):
-                        if(tmp!=0):
-                            self.puzzle_FenNotation += str(tmp) + x[i][j]
-                            tmp = 0
-                        else:
-                            self.puzzle_FenNotation += x[i][j]
-                    else:
-                        tmp += 1
-                        if(j==7):
-                            self.puzzle_FenNotation += str(tmp)
-                    print(x[i][j], end=" ")
-                if(i!=0):
-                    self.puzzle_FenNotation += "/"
-                print()
-            print(self.puzzle_FenNotation)
-
-        self.leftWidget.chessWebView.page().runJavaScript(js_function.puzzle_GetBoard, callback)
+            
 
 ## load text to TTS queue
 def speak(sentence, importance=False, dialog=False):
@@ -1628,7 +1742,7 @@ class VoiceInput_Thread(QThread):
                 self.frames=[]
                 self.activate = False
                 print("Speech to Text performing...")
-                self.text_output = self.model.transcribe("movetest.wav", fp16=False)["text"].lower()
+                self.text_output = self.model.transcribe("e2e4.wav", fp16=False)["text"].lower()
                 print(f"Speech to Text finished! Output: {self.text_output}")
                 self.checkAction()
 
@@ -1649,6 +1763,9 @@ class VoiceInput_Thread(QThread):
             elif(any(words in self.text_output for words in determinant.online_mode_words)):
                 self.action_signal.emit("online")
 
+            elif(any(words in self.text_output for words in determinant.puzzle_mode_words)):
+                self.action_signal.emit("puzzle")
+
             else:
                 speak("Sorry, I don't understand your request. Please repeat it again")
 
@@ -1658,6 +1775,7 @@ class VoiceInput_Thread(QThread):
                 self.action_signal.emit("resign")
                 return
             
+            self.chess_move = []
             for moves in window.chess_position:
                 if moves in self.text_output:
                     self.chess_move.append(moves)
