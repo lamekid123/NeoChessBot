@@ -1727,17 +1727,21 @@ class MainWindow(QMainWindow):
                     moveTopLeft(x, y, x_scale, y_scale, interval)
                 elif(dest[0]>src[0] and dest[1]>src[1]):
                     moveBottomLeft(x, y, x_scale, y_scale, interval)
+            QTimer.singleShot(1000, self.focus_back)
 
+        screen = self.screen().geometry()
+        left = screen.left()
+        top = screen.top()
         src = move[0] + move[1]
         dest = move[2] + move [3]
         loc = CHESSBOARD_LOCATION_CONVERSION[src[0]] + src[1]
         x_scale = abs(ord(dest[0])-ord(src[0]))
         y_scale = abs(int(dest[1])-int(src[1]))
-        self.leftWidget.chessWebView.page().runJavaScript(js_function.getCoordinate + f"getCoordinate({loc})", callback)
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.getCoordinate + f"getCoordinate({loc}, {left}, {top})", callback)
 
     def clickNextPuzzle(self):
         def callback(x):
-            QTimer.singleShot(2000, self.puzzle_mode_GetTitle)
+            QTimer.singleShot(2000, self.puzzle_mode_InitBoard)
 
         self.leftWidget.chessWebView.page().runJavaScript(js_function.clickNextPuzzle, callback)
 
