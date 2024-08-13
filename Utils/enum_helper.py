@@ -4,6 +4,7 @@ from enum import Enum
 class Game_play_mode(Enum):
     computer_mode = "COMPUTER_MODE"
     online_mode = "ONLINE_MODE"
+    puzzle_mode = "PUZZLE_MODE"
 
 
 class Input_mode(Enum):
@@ -63,5 +64,6 @@ class determinant:
     options_words = ["option", "options"]
     computer_mode_words = ["computer", "computers", "pvc"]
     online_mode_words = ["online", "player", "players", "pvp", "rank"]
+    puzzle_mode_words = ["puzzle", "puzzles"]
     move_pieces_words = ["move", "take", "takes", "promote"]
     resign_words = ["resign", "give up", "quit", "end", "surrender"]
