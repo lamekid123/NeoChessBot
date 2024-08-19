@@ -148,6 +148,7 @@ puzzle_mode_constructBoard = """
 
 puzzle_mode_GetTitle = """
     function puzzle_mode_GetTitle(){
+        document?.querySelector(".modal-first-time-button")?.getElementsByTagName('button')[0].click()
         return document.querySelector(".section-heading-title").textContent.split(' ')[0];
     }
     puzzle_mode_GetTitle();
@@ -173,6 +174,7 @@ puzzle_mode_GetOpponentMove = """
     }
     puzzle_mode_GetOpponentMove();
 """
+##反智地方: 佢某啲棋嘅class name format唔同, 冇general case 所以call完仲要check返邊個係src同dest
 
 getCoordinate = """
     function getCoordinate(pos, screen_left, screen_top){
@@ -190,6 +192,12 @@ getCoordinate = """
         return [x, y, interval*pix_scale, name, pix_scale];
 }
 """
+## pix_scale 計返放大嘅比例, 用作計算正確coordinate
+## top margin 用作移動鼠標到程式內容的左上角(不是視窗)
+## 解決多mon錯位嘅問題: 搵返目前視窗處於嘅位置, 拎佢嘅left同top value,
+# 將現有嘅coordinate_x減去left, coordinate_x減去top 再乘以倍大比例去獲取移位後嘅coordinate, 最後加返減去嘅top同left將鼠標移去正面嘅monitor
+
+
 
 clickNextPuzzle = """
     function clickNextPuzzle(){
@@ -198,3 +206,25 @@ clickNextPuzzle = """
     }
     clickNextPuzzle();
     """
+
+clickTimeControlButton = """
+    function clickTimeControlButton(timeControl, login){
+        document.querySelector('.selector-button-button').click();
+        setTimeout(() => {
+            buttons = document.querySelectorAll('button');
+            for(button of buttons){
+                if(button?.textContent?.trim()?.toLowerCase()==timeControl){
+                    timeControlButton = button;
+                }
+                else if(button?.textContent?.trim()?.toLowerCase()=='play'){
+                    playButton = button;
+                }
+            }
+            timeControlButton.click();
+            playButton.click();
+            if(!login){
+                setTimeout(() => document.querySelector('.authentication-intro-guest').click(), 100);
+            }
+        }, 100)
+    }
+"""

@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QApplication,
     QHBoxLayout,
     QMessageBox,
-    QCheckBox,
+    aheckBox,
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
@@ -32,7 +32,9 @@ from Utils.enum_helper import (
     Game_flow_status,
     Speak_template,
     Game_play_mode,
-    determinant
+    determinant,
+    bot_List,
+    timeControl
 )
 
 import pyaudio
@@ -171,6 +173,22 @@ class RightWidget(QWidget):
             "press enter to play with other online player"
         )
 
+        # self.playWithOther_Bullet_Button = QPushButton("Bullet")
+        # self.playWithOther_Blitz_Button = QPushButton("Blitz")
+        # self.playWithOther_Rapid_Button = QPushButton("Rapid")
+
+        self.playWithOther_Bullet_1_0_Button = QPushButton("1 + 0")
+        self.playWithOther_Bullet_1_1_Button = QPushButton("1 + 1")
+        self.playWithOther_Bullet_2_1_Button = QPushButton("2 + 1")
+
+        self.playWithOther_Blitz_3_0_Button = QPushButton("3 + 0")
+        self.playWithOther_Blitz_3_2_Button = QPushButton("3 + 2")
+        self.playWithOther_Blitz_5_0_Button = QPushButton("5 + 0")
+
+        self.playWithOther_Rapid_10_0_Button = QPushButton("10 + 0")
+        self.playWithOther_Rapid_15_10_Button = QPushButton("15 + 10")
+        self.playWithOther_Rapid_30_0_Button = QPushButton("30 + 0")
+
         self.puzzleModeButton = QPushButton("Puzzle Mode")
 
         self.playWithComputerButton.setAutoDefault(True)
@@ -219,15 +237,30 @@ class RightWidget(QWidget):
         self.play_menu.append(self.check_position)
         self.play_menu.append(self.commandPanel)
 
+        self.online_mode_select_menu = []
+        self.online_mode_select_menu.append(self.playWithOther_Bullet_1_0_Button)
+        self.online_mode_select_menu.append(self.playWithOther_Bullet_1_1_Button)
+        self.online_mode_select_menu.append(self.playWithOther_Bullet_2_1_Button)
+        self.online_mode_select_menu.append(self.playWithOther_Blitz_3_0_Button)
+        self.online_mode_select_menu.append(self.playWithOther_Blitz_3_2_Button)
+        self.online_mode_select_menu.append(self.playWithOther_Blitz_5_0_Button)
+        self.online_mode_select_menu.append(self.playWithOther_Rapid_10_0_Button)
+        self.online_mode_select_menu.append(self.playWithOther_Rapid_15_10_Button)
+        self.online_mode_select_menu.append(self.playWithOther_Rapid_30_0_Button)
+
+
         self.setting_layout = QVBoxLayout()
         # self.setting_layout.addWidget(self.screen_reader_checkBox)
-        for w in self.setting_menu:
-            self.setting_layout.addWidget(w)
+        for item in self.setting_menu:
+            self.setting_layout.addWidget(item)
 
-        for w in self.play_menu:
-            self.setting_layout.addWidget(w)
-            w.hide()
+        for item in self.play_menu:
+            self.setting_layout.addWidget(item)
+            item.hide()
 
+        for item in self.online_mode_select_menu:
+            self.setting_layout.addWidget(item)
+            item.hide()
         self.setLayout(self.setting_layout)
 
 
@@ -272,8 +305,8 @@ class MainWindow(QMainWindow):
     Control the application status, implement functionality to left and right widget.\n
     Handle all logic operation
     """
-
-    puzzle_getOppMove_sgn = pyqtSignal()
+    computer_select_bot_sgn = pyqtSignal(str)
+    online_select_timeControl_sgn = pyqtSignal(str)
 
     def show_information_box(self):
         message_box = QMessageBox()
@@ -309,15 +342,26 @@ class MainWindow(QMainWindow):
                 self.rightWidget.opponentBox.setText("Opponent move: \n")
                 for label in self.leftWidget.grids.values():
                     label.deleteLater()
-                for w in self.rightWidget.play_menu:
-                    w.hide()
-                for w in self.rightWidget.setting_menu:
-                    w.show()
+                for item in self.rightWidget.play_menu:
+                    item.hide()
+                for item in self.rightWidget.setting_menu:
+                    item.show()
                 self.rightWidget.playWithComputerButton.setFocus()
                 self.currentFoucs = 0
                 self.leftWidget.grids = dict()
-
                 return
+            case Bot_flow_status.select_status:
+                self.main_flow_status = Bot_flow_status.select_status
+                for item in self.rightWidget.setting_menu:
+                    item.hide()
+                match self.game_play_mode:
+                    case Game_play_mode.computer_mode:
+                        self.default_bot()
+                    case Game_play_mode.online_mode:
+                        for item in self.rightWidget.online_mode_select_menu:
+                            item.show()
+                        speak("Select Time Controls")
+
             case Bot_flow_status.board_init_status:
                 self.main_flow_status = Bot_flow_status.board_init_status
 
@@ -329,10 +373,10 @@ class MainWindow(QMainWindow):
                 self.check_game_end_timer.stop()
                 self.getScoreTimer.stop()
                 self.input_mode = Input_mode.command_mode
-                for w in self.rightWidget.setting_menu:
-                    w.hide()
-                for w in self.rightWidget.play_menu:
-                    w.show()
+                for item in self.rightWidget.setting_menu:
+                    item.hide()
+                for item in self.rightWidget.play_menu:
+                    item.show()
                 self.chessBoard = None
                 self.userColor = None
                 self.opponentColor = None
@@ -363,11 +407,11 @@ class MainWindow(QMainWindow):
             "computer engine mode <>" + Speak_template.initialize_game_sentense.value,
             True,
         )
+        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(1500, self.check_ExistGame))
+
         self.leftWidget.chessWebView.load(
             QUrl("https://www.chess.com/play/computer/komodo1")
         )
-
-        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(2000, self.check_ExistGame))
 
     def default_bot(self):
         def clickNCapture():
@@ -403,57 +447,34 @@ class MainWindow(QMainWindow):
             speak("Please resign before start a new game", True)
             return
         print("online mode selected")
-        self.change_main_flow_status(Bot_flow_status.board_init_status)
-        self.game_play_mode = Game_play_mode.online_mode
         speak(
             "online player mode <>" + Speak_template.initialize_game_sentense.value,
             True,
         )
+        self.game_play_mode = Game_play_mode.online_mode
+        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(1500, self.check_ExistGame))
         self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/play/online"))
-        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(2000,self.is_previous_game_exist))
-
-    def online30min(self):
-        def clickNCapture():
+        
+    def online_select_timeControl(self, timeControl):
+        def clickNCapture(x):
             def test(clocks):
                 if clocks == None or clocks[0] == clocks[1]:
-                    self.leftWidget.checkTime(test)
+                        self.leftWidget.checkTime(test)
                 else:
                     print("clocks detected :", clocks)
                     if not self.main_flow_status == Bot_flow_status.game_play_status:
-                        # QTimer.singleShot(3000, self.initBoard)
                         self.initBoard()
                         self.getColor()
                         self.getBoard()
-
             self.leftWidget.checkTime(test)
-            # self.initBoard()
-
+        
+        print(f"timeControl = {timeControl}")
         if self.leftWidget.userLoginName != None:
             print("login name", self.leftWidget.userLoginName)
-            self.clickWebButton(
-                [
-                    ("button", "min"),
-                    ("button", "More Time Controls"),
-                    ("button", "30 min"),
-                    ("button", "play"),
-                ],
-                0,
-                clickNCapture,
-                0,
-            )
+            self.leftWidget.chessWebView.page().runJavaScript(js_function.clickTimeControlButton + f"clickTimeControlButton('{timeControl}', true)", clickNCapture)
         else:
             print("No login")
-            self.clickWebButton(
-                [
-                    ("button", "min"),
-                    ("button", "30 min"),
-                    ("button", "play"),
-                    ("a", "play as a guest"),
-                ],
-                0,
-                clickNCapture,
-                0,
-            )
+            self.leftWidget.chessWebView.page().runJavaScript(js_function.clickTimeControlButton + f"clickTimeControlButton('{timeControl}', false)", clickNCapture)
 
     def puzzleModeHandler(self):
         self.game_play_mode = Game_play_mode.puzzle_mode
@@ -462,7 +483,6 @@ class MainWindow(QMainWindow):
         self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(2000, self.puzzle_mode_InitBoard))
 
     def puzzle_mode_InitBoard(self):
-        # self.initBoard()
         self.puzzle_mode_GetTitle()
         self.puzzle_mode_ConstructBoard()
 
@@ -522,10 +542,9 @@ class MainWindow(QMainWindow):
                     case "Incorrect":
                         print("Incorrect, puzzle run ended")
                         self.change_main_flow_status(Bot_flow_status.setting_status)
-                    case "White":
-                        self.puzzle_getOppMove_sgn.emit()
-                    case "Black":
-                        self.puzzle_getOppMove_sgn.emit() 
+                    case _:
+                        # self.puzzle_getOppMove_sgn.emit()
+                        self.puzzle_mode_GetMove()
 
         self.leftWidget.chessWebView.page().runJavaScript(js_function.puzzle_mode_GetTitle, callback)
 
@@ -793,7 +812,7 @@ class MainWindow(QMainWindow):
                 self.puzzle_movePiece(input)
                 QTimer.singleShot(2000, self.puzzle_mode_GetTitle)
             else:
-                speak("Please wait for your opponent's move")
+                speak("Please wait for your opponent")
             self.rightWidget.commandPanel.clear()
             return
         
@@ -807,6 +826,12 @@ class MainWindow(QMainWindow):
             #         self.playWithOtherButtonHandler()
             #         self.rightWidget.commandPanel.clear()
             #         return
+            case Bot_flow_status.select_status:
+                if input.count("+"):
+                    minute = input.split("+")[0]
+                    increment = input.split("+")[1]
+                    print(f"minute = {minute}, inc = {increment}")
+
             case Bot_flow_status.board_init_status:
                 return
             case Bot_flow_status.game_play_status:
@@ -1236,25 +1261,22 @@ class MainWindow(QMainWindow):
                 self.playWithComputerHandler()
             elif(self.game_play_mode == Game_play_mode.online_mode):
                 self.playWithOtherButtonHandler()
-            else:
-                self.puzzleModeHandler()
             return
         
         x = None
-        while(x is None and retry<50):
-            try:
-                file_path = os.path.join(current_dir, "Tmp", "board_screenshot.png")
-                # file_path = "./widget_screenshot.png"
-                screenshot = self.leftWidget.chessWebView.grab()
-                screenshot.save(file_path)
-                print("cap here")
-                viewWidth = self.leftWidget.chessWebView.width()
-                viewHeight = self.leftWidget.chessWebView.height()
-                x, y, w, h = detectChessboard(file_path, viewWidth, viewHeight)
-            except Exception as e:
-                print("error retry", e)
-                retry = retry + 1
-                # QTimer.singleShot(2000, partial(self.initBoard, retry))
+        try:
+            file_path = os.path.join(current_dir, "Tmp", "board_screenshot.png")
+            # file_path = "./widget_screenshot.png"
+            screenshot = self.leftWidget.chessWebView.grab()
+            screenshot.save(file_path)
+            print("cap here")
+            viewWidth = self.leftWidget.chessWebView.width()
+            viewHeight = self.leftWidget.chessWebView.height()
+            x, y, w, h = detectChessboard(file_path, viewWidth, viewHeight)
+        except Exception as e:
+            print("error retry", e)
+            retry = retry + 1
+            # QTimer.singleShot(2000, partial(self.initBoard, retry))
                 
         self.board_x = int(x)
         self.board_y = int(y)
@@ -1607,7 +1629,21 @@ class MainWindow(QMainWindow):
         self.rightWidget.playWithComputerButton.setFocus()
         self.currentFoucs = 0
         # self.show_information_box()
-        self.puzzle_getOppMove_sgn.connect(self.puzzle_mode_GetMove)
+
+        self.online_select_timeControl_sgn.connect(self.online_select_timeControl)
+
+        self.rightWidget.playWithOther_Bullet_1_0_Button.clicked.connect(lambda: self.online_select_timeControl_sgn.emit(timeControl.timeControl_1_0.value))
+        self.rightWidget.playWithOther_Bullet_1_1_Button.clicked.connect(lambda: self.online_select_timeControl_sgn.emit(timeControl.timeControl_1_1.value))
+        self.rightWidget.playWithOther_Bullet_2_1_Button.clicked.connect(lambda: self.online_select_timeControl_sgn.emit(timeControl.timeControl_2_1.value))
+
+        self.rightWidget.playWithOther_Blitz_3_0_Button.clicked.connect(lambda: self.online_select_timeControl_sgn.emit(timeControl.timeControl_3_0.value))
+        self.rightWidget.playWithOther_Blitz_3_2_Button.clicked.connect(lambda: self.online_select_timeControl_sgn.emit(timeControl.timeControl_3_2.value))
+        self.rightWidget.playWithOther_Blitz_5_0_Button.clicked.connect(lambda: self.online_select_timeControl_sgn.emit(timeControl.timeControl_5_0.value))
+
+        self.rightWidget.playWithOther_Rapid_10_0_Button.clicked.connect(lambda: self.online_select_timeControl_sgn.emit(timeControl.timeControl_10_0.value))
+        self.rightWidget.playWithOther_Rapid_15_10_Button.clicked.connect(lambda: self.online_select_timeControl_sgn.emit(timeControl.timeControl_15_10.value))
+        self.rightWidget.playWithOther_Rapid_30_0_Button.clicked.connect(lambda: self.online_select_timeControl_sgn.emit(timeControl.timeControl_30_0.value))
+
         voice_input_thread.action_signal.connect(self.Action)
     
     def voice_input(self):
@@ -1630,7 +1666,10 @@ class MainWindow(QMainWindow):
             case "puzzle":
                 self.puzzleModeHandler()
             case "move":
-                self.movePiece(voice_input_thread.chess_move)
+                if self.game_play_mode == Game_play_mode.puzzle_mode:
+                    self.puzzle_movePiece()
+                else:
+                    self.movePiece(voice_input_thread.chess_move)
             case "resign":
                 self.resign_handler()
 
@@ -1649,6 +1688,7 @@ class MainWindow(QMainWindow):
         def callback(moveList):
             print(f"movemovmeomvomeovmo = {moveList}")
             if(moveList):
+                self.change_main_flow_status(Bot_flow_status.board_init_status)
                 self.initBoard()
                 self.getColor()
                 self.getBoard()
@@ -1680,12 +1720,8 @@ class MainWindow(QMainWindow):
             if(self.previous_game_exist):
                 print("check end")
                 return
-            else:
-                match(self.game_play_mode):
-                    case Game_play_mode.computer_mode:
-                        self.default_bot()
-                    case Game_play_mode.online_mode:
-                        self.online30min()
+            else:       
+                self.change_main_flow_status(Bot_flow_status.select_status)
     
     def puzzle_movePiece(self, move):
         def callback(pos):
@@ -1727,6 +1763,7 @@ class MainWindow(QMainWindow):
                     moveTopLeft(x, y, x_scale, y_scale, interval)
                 elif(dest[0]>src[0] and dest[1]>src[1]):
                     moveBottomLeft(x, y, x_scale, y_scale, interval)
+            self.chessBoard.moveWithValidate(move)
             QTimer.singleShot(1000, self.focus_back)
 
         screen = self.screen().geometry()
@@ -1745,7 +1782,7 @@ class MainWindow(QMainWindow):
 
         self.leftWidget.chessWebView.page().runJavaScript(js_function.clickNextPuzzle, callback)
 
-
+            
 ## load text to TTS queue
 def speak(sentence, importance=False, dialog=False):
     global previous_sentence
@@ -1806,7 +1843,7 @@ class VoiceInput_Thread(QThread):
                 self.frames=[]
                 self.activate = False
                 print("Speech to Text performing...")
-                self.text_output = self.model.transcribe("e2e4.wav", fp16=False)["text"].lower()
+                self.text_output = self.model.transcribe("1+1.wav", fp16=False)["text"].lower()
                 print(f"Speech to Text finished! Output: {self.text_output}")
                 self.checkAction()
 
@@ -1833,26 +1870,41 @@ class VoiceInput_Thread(QThread):
             else:
                 speak("Sorry, I don't understand your request. Please repeat it again")
 
-            
+        elif(window.main_flow_status == Bot_flow_status.select_status):
+            match window.game_play_mode:
+                case Game_play_mode.computer_mode:
+                    self.action_signal.emit()
+                case Game_play_mode.online_mode:
+                    for words in timeControl:
+                        if(words.value in self.text_output):
+                            self.action_signal.emit(words.value) 
+                case Game_play_mode.puzzle_mode:
+                    self.action_signal.emit()
+
         elif(window.main_flow_status == Bot_flow_status.game_play_status):
-            if(any(words in self.text_output for words in determinant.resign_words)):
-                self.action_signal.emit("resign")
-                return
+            match window.game_play_mode:
+                case Game_play_mode.puzzle_mode:
+                    self.voiceToMove()
+                case _:
+                    if(any(words in self.text_output for words in determinant.resign_words)):
+                        self.action_signal.emit("resign")
+                    else:
+                        self.voiceToMove()
             
-            self.chess_move = []
-            for moves in window.chess_position:
-                if moves in self.text_output:
-                    self.chess_move.append(moves)
-            print(f"chess move = {self.chess_move}")
-            if(len(self.chess_move)==2):
-                self.chess_move = "".join(self.chess_move[0] + self.chess_move[1])
-                print("move triggered")
-                self.action_signal.emit("move")
-            else:
-                speak("Invalid Input")
             # if(self.move_action):
 
-
+    def voiceToMove(self):
+        self.chess_move = []
+        for moves in window.chess_position:
+            if moves in self.text_output:
+                self.chess_move.append(moves)
+        print(f"chess move = {self.chess_move}")
+        if(len(self.chess_move)==2):
+            self.chess_move = "".join(self.chess_move[0] + self.chess_move[1])
+            print("move triggered")
+            self.action_signal.emit("move")
+        else:
+            speak("Invalid Input")
 
 if __name__ == "__main__":
     global speak_thread
