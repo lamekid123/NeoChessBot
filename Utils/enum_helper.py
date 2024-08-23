@@ -61,23 +61,6 @@ class Speak_template(Enum):
     )
     user_white_side_sentense = "You are playing as white. Please make your first move."
 
-class determinant(Enum):
-    options_words = ["option", "options"]
-
-    computer_mode_words = ["computer", "computers", "pvc", "bot", "bots"]
-
-    online_mode_words = ["online", "player", "players", "pvp", "rank"]
-
-    puzzle_mode_words = ["puzzle", "puzzles"]
-
-    resign_words = ["resign", "give up", "quit", "forfeit", "surrender"]
-
-    timeControl_1_0_words = ["1+0", "1 + 0", "1|0", "1 | 0", "1 min", "1min", "one minute", "1 minute", "1minute", "1 plus 0"]
-    timeControl_1_1_words = ["1+1", "1 + 1", "1|1", "1 | 1", "one plus one", "1 plus 1", "one + one"]
-    timeControl_2_1_words = ["2+1", "2 + 1", "2|1", "2 | 1", "two plus one", "2 plus 1", "two + one"]
-    timeControl_3_0_words = ["3+0", "3 + 0", "3|0", "3 | 0", "3 min", "3min", "three minute", "3 minute", "3minute", "3 plus 0"]
-    timeControl_3_2_words = ["3+2", "3 + 2", "3|2", "3 | 2", "three plus two", "3 plus 2", "three + two"]
-    timeControl_5_0_words = ["5+0", "5 + 0", "5|0", "5 | 0", "5 min", "5min", "five minute", "5 minute", "5minute", "5 plus 0"]
 
 
 class english_chess_pieces_name(Enum):
@@ -185,8 +168,6 @@ class bot_List(Enum):
 
     engine_Beginner_Rating250 = {"name": "Beginner", "rating": "250", "cat": "Engine"}
 
-
-
 class timeControl(Enum):
     timeControl_1_0 = "1 min"
     timeControl_1_1 = "1 | 1"
@@ -197,3 +178,27 @@ class timeControl(Enum):
     timeControl_10_0 = "10 min"
     timeControl_15_10 = "15 | 10"
     timeControl_30_0 = "30 min"
+
+class determinant(Enum):
+    options_words = ["option", "options"]
+
+    computer_mode_words = ["computer", "computers", "pvc", "bot", "bots"]
+
+    online_mode_words = ["online", "player", "players", "pvp", "rank"]
+
+    puzzle_mode_words = ["puzzle", "puzzles"]
+
+    resign_words = ["resign", "give up", "forfeit", "surrender"]
+
+    quit_application_words = ["quit", "exit", "leave", "close", "shutdown"]
+
+class timeControlDeterminant(Enum):
+    timeControl_1_0_words = dict.fromkeys(["1+0", "1 + 0", "1|0", "1 | 0", "1 min", "1min", "one minute", "1 minute", "1minute", "1 plus 0"], timeControl.timeControl_1_0.value)
+    timeControl_1_1_words = dict.fromkeys(["1+1", "1 + 1", "1|1", "1 | 1", "one plus one", "1 plus 1", "one + one"], timeControl.timeControl_1_1.value)
+    timeControl_2_1_words = dict.fromkeys(["2+1", "2 + 1", "2|1", "2 | 1", "two plus one", "2 plus 1", "two + one"], timeControl.timeControl_2_1.value)
+    timeControl_3_0_words = dict.fromkeys(["3+0", "3 + 0", "3|0", "3 | 0", "3 min", "3min", "three minute", "3 minute", "3minute", "3 plus 0"], timeControl.timeControl_3_0.value)
+    timeControl_3_2_words = dict.fromkeys(["3+2", "3 + 2", "3|2", "3 | 2", "three plus two", "3 plus 2", "three + two"], timeControl.timeControl_3_2.value)
+    timeControl_5_0_words = dict.fromkeys(["5+0", "5 + 0", "5|0", "5 | 0", "5 min", "5min", "five minute", "5 minute", "5minute", "5 plus 0"], timeControl.timeControl_5_0.value)
+    timeControl_10_0_words = dict.fromkeys(["10+0", "10 + 0", "10|0", "10 | 0", "10 min", "10min", "ten minute", "10 minute", "10minute", "10 plus 0"], timeControl.timeControl_10_0.value)
+    timeControl_15_10_words = dict.fromkeys(["15+10", "15 + 10", "15|10", "15 | 10", "fifteen plus ten", "15 plus 10", "fifteen + ten"], timeControl.timeControl_15_10.value)
+    timeControl_30_0_words = dict.fromkeys(["30+0", "30 + 0", "30|0", "30 | 0", "30 min", "30min", "thirty minute", "30 minute", "30minute", "30 plus 0", "default"], timeControl.timeControl_10_0.value)

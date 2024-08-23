@@ -3,7 +3,6 @@ from PyQt6.QtWidgets import QApplication
 import time
 import pyautogui
 
-
 ##simulate mouse click and move to make piece move on web view
 def widgetDragDrop(targetWidget, destWidget):
     QTest.mouseMove(targetWidget)
