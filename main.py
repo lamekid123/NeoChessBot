@@ -37,13 +37,12 @@ from Utils.enum_helper import (
     timeControl,
     timeControlDeterminant
 )
+from PyQt6 import QtWidgets
 
 import pyaudio
 import wave
 import whisper
 import torch
-
-import queue
 
 import js_function
 
@@ -187,7 +186,21 @@ class RightWidget(QWidget):
         self.playWithComputerButton.setAccessibleDescription(
             "press enter to play with computer engine"
         )
-        
+
+        self.playWithComputerButton_BackToSchoolButton = QPushButton("Back To School")
+        self.playWithComputerButton_Coach = QPushButton("Coach")
+        self.playWithComputerButton_Adaptive = QPushButton("Adaptive")
+        self.playWithComputerButton_Beginner = QPushButton("Beginner")
+        self.playWithComputerButton_Intermediate = QPushButton("Intermediate")
+        self.playWithComputerButton_Advanced = QPushButton("Advanced")
+        self.playWithComputerButton_Master = QPushButton("Master")
+        self.playWithComputerButton_Athletes = QPushButton("Athletes")
+        self.playWithComputerButton_Musicians = QPushButton("Musicians")
+        self.playWithComputerButton_Creators = QPushButton("Creators")
+        self.playWithComputerButton_TopPlayers = QPushButton("Top Players")
+        self.playWithComputerButton_Personalities = QPushButton("Personalities")
+        self.playWithComputerButton_Engine = QPushButton("Engine")
+
         self.playWithOtherButton = QPushButton("Play with other online player")
         self.playWithOtherButton.setAccessibleName("Play with other online player")
         self.playWithOtherButton.setAccessibleDescription(
@@ -270,8 +283,6 @@ class RightWidget(QWidget):
         self.online_mode_select_menu.append(self.playWithOther_Rapid_10_0_Button)
         self.online_mode_select_menu.append(self.playWithOther_Rapid_15_10_Button)
         self.online_mode_select_menu.append(self.playWithOther_Rapid_30_0_Button)
-        self.online_mode_select_menu.append(self.selectPanel)
-
 
         self.setting_layout = QVBoxLayout()
         # self.setting_layout.addWidget(self.screen_reader_checkBox)
@@ -383,6 +394,7 @@ class MainWindow(QMainWindow):
                     case Game_play_mode.online_mode:
                         for item in self.rightWidget.online_mode_select_menu:
                             item.show()
+                        self.rightWidget.playWithOther_Bullet_1_0_Button.setFocus()
                         speak("Select Time Controls")
                 return
 
@@ -411,9 +423,8 @@ class MainWindow(QMainWindow):
                 self.check_game_end_timer.start(2000)
                 self.rightWidget.commandPanel.setFocus()
                 self.currentFoucs = len(self.rightWidget.play_menu)
-                if(self.stockfishTicket.empty()):
-                    for i in range(3):
-                        self.stockfishTicket.put(1) 
+                with open ("./stockfishTicket.txt", 'w') as stockfishTicket:
+                    stockfishTicket.write('3')
                 self.main_flow_status = Bot_flow_status.game_play_status
                 return
 
@@ -435,7 +446,7 @@ class MainWindow(QMainWindow):
             "computer engine mode <>" + Speak_template.initialize_game_sentense.value,
             True,
         )
-        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(1500, self.checkExistGame))
+        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(2000, self.checkExistGame))
 
         self.leftWidget.chessWebView.load(
             QUrl("https://www.chess.com/play/computer/komodo1")
@@ -519,14 +530,15 @@ class MainWindow(QMainWindow):
             if(moveList):
                 def getResult(x):
                     self.FenNotation = x
-                    self.chessBoard = ChessBoard(self.FenNotation)
+                    self.getBoard(self.FenNotation)
+                    self.change_main_flow_status(Bot_flow_status.game_play_status)
                     print(f"self.FenNotation = {self.FenNotation}")
 
                 self.change_main_flow_status(Bot_flow_status.board_init_status)
                 self.initBoard()
                 self.getColor()
                 self.leftWidget.chessWebView.page().runJavaScript(js_function.clickShare)
-                QTimer.singleShot(150, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.getFEN, getResult))
+                QTimer.singleShot(500, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.getFEN, getResult))
                 print("reconstructing the board")
 
                 for move in moveList:
@@ -1398,7 +1410,7 @@ class MainWindow(QMainWindow):
         return self.leftWidget.chessWebView.page().runJavaScript(jsCode, next_click)
 
     ##assign square after detect the web view chessboard and color
-    def getBoard(self):
+    def getBoard(self, *args):
         for row in range(8):
             for col in range(8):
                 self.leftWidget.grids[self.alphabet[col] + self.number[row]] = (
@@ -1408,7 +1420,7 @@ class MainWindow(QMainWindow):
                     self.alphabet[col] + self.number[row]
                 ].setAccessibleName(self.alphabet[col] + self.number[row])
 
-        self.chessBoard = ChessBoard()
+        self.chessBoard = ChessBoard(args[0]) if(args) else ChessBoard()
         self.change_main_flow_status(Bot_flow_status.game_play_status)
 
     ##toggle the marked square layer -> hide before perfrom click
@@ -1739,7 +1751,6 @@ class MainWindow(QMainWindow):
 
         ##initialize stockfish component for chess move advice 
         self.stockfish = stockfish_adviser()
-        self.stockfishTicket = queue.Queue()
 
         def timeCallback(clocks):
             if not clocks == None:
@@ -1844,9 +1855,14 @@ class MainWindow(QMainWindow):
     def stockfish_adviser_caller(self):
         if(self.main_flow_status == Bot_flow_status.game_play_status):
             if(self.game_flow_status == Game_flow_status.user_turn):
-                if(not self.stockfishTicket.empty()):
+                with open("./stockfishTicket.txt", "r") as file:
+                    self.stockfishTicket = int(file.read())
+                if(not self.stockfishTicket == 0):
                     suggestion = self.stockfish.suggested_move(self.chessBoard.current_board())
-                    self.stockfishTicket.get()
+                    with open("./stockfishTicket.txt", "w+") as file:                    
+                        file.write(str(self.stockfishTicket - 1))
+                        file.seek(0)
+                        print(f"ticket left: {file.read()}")
                     print(suggestion)
                     speak(suggestion)
                 else:
@@ -1855,6 +1871,12 @@ class MainWindow(QMainWindow):
                 print("Please wait for opponent finish their move")
         else:
             print("You are not playing any chess game")
+
+    def currentOption(self):
+        match self.main_flow_status:
+            case Bot_flow_status.setting_status:
+                print("Choose the game mode that you want to play")
+
     
 ## load text to TTS queue
 def speak(sentence, importance=False, dialog=False):
@@ -1874,6 +1896,7 @@ class VoiceInput_Thread(QThread):
     '''
 
     action_signal = pyqtSignal(str)
+    activate_signal = pyqtSignal()
 
     ##auto start and loop until application close
     def __init__(self):
@@ -1898,13 +1921,14 @@ class VoiceInput_Thread(QThread):
                 frames_per_buffer=self.CHUNK)
         self.frames = []
         self.chess_move = []
+        self.activate_signal.connect(self.run)
         self.start()
 
     def run(self):
         print("Voice Input function running")
         voiceInput_running = True
         while voiceInput_running:
-            time.sleep(1)
+            time.sleep(0.5)
             while self.activate:
                 data = self.stream.read(self.CHUNK)
                 self.frames.append(data)
@@ -1918,7 +1942,7 @@ class VoiceInput_Thread(QThread):
                 self.frames=[]
                 self.activate = False
                 print("Speech to Text performing...")
-                self.text_output = self.model.transcribe("1+1.wav", fp16=False)["text"].lower()
+                self.text_output = self.model.transcribe("movetest.wav", fp16=False)["text"].lower()
                 print(f"Speech to Text finished! Output: {self.text_output}")
                 self.checkAction()
 
@@ -1945,9 +1969,6 @@ class VoiceInput_Thread(QThread):
             elif(any(words in self.text_output for words in determinant.puzzle_mode_words.value)):
                 self.action_signal.emit("puzzle")
 
-            else:
-                speak("Sorry, I don't understand your request. Please repeat it again")
-
         elif(window.main_flow_status == Bot_flow_status.select_status):
             match window.game_play_mode:
                 case Game_play_mode.computer_mode:
@@ -1964,12 +1985,13 @@ class VoiceInput_Thread(QThread):
                 case Game_play_mode.puzzle_mode:
                     self.voiceToMove()
                 case _:
-                    if(any(words in self.text_output for words in determinant.resign_words)):
+                    if(any(words in self.text_output for words in determinant.resign_words.value)):
                         self.action_signal.emit("resign")
                     else:
                         self.voiceToMove()
             
-            # if(self.move_action):
+        else:
+            print("Sorry, I don't understand your request. Please repeat it again")
 
     def voiceToMove(self):
         self.chess_move = []

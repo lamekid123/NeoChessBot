@@ -238,10 +238,10 @@ clickShare = """
 getFEN = """
     function getFEN(){
         let FEN = document.querySelector(".share-menu-tab-pgn-section").getElementsByClassName("ui_v5-input-component")[0]._value;
-        document.querySelector('[aria-label="Close"]');
+        document.querySelector('[aria-label="Close"]').click();
         return FEN;
     }
-    genFEN();
+    getFEN();
 """
 
 checkMoveSuccess = """
