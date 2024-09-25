@@ -92,6 +92,8 @@ class LeftWidget(QWidget):
     It contains chess.com web view and invisible grids that assigned after board detection
     """
 
+    key_signal = pyqtSignal(int)
+
     def __init__(self):
         super().__init__()
 
@@ -141,7 +143,9 @@ class LeftWidget(QWidget):
             """
 
         return self.chessWebView.page().runJavaScript(jsCode, callBack)
-
+    
+    def keyPressEvent(self, event):
+        self.key_signal.emit(event.key())
 
 class CheckBox(QCheckBox):
     """
@@ -1725,6 +1729,9 @@ class MainWindow(QMainWindow):
 
         shortcut_b = QShortcut(QKeySequence("b"), self)
         shortcut_b.activated.connect(lambda: print(self.chessBoard.board_object))
+
+        shortcut_a = QShortcut(QKeySequence("a"), self)
+        shortcut_a.activated.connect(self.analysis)
         
         self.all_shortcut = {
             "F": shortcut_F,
@@ -1826,15 +1833,48 @@ class MainWindow(QMainWindow):
         self.rightWidget.playWithOther_Rapid_15_10_Button.clicked.connect(lambda: self.online_select_timeControl(timeControl.timeControl_15_10.value))
         self.rightWidget.playWithOther_Rapid_30_0_Button.clicked.connect(lambda: self.online_select_timeControl(timeControl.timeControl_30_0.value))
 
-        voice_input_thread.action_signal.connect(self.Action)
-    
+        voice_input_thread.action_signal.connect(self.voice_action)
+
+    def analysis(self):
+        def callback1(x):
+            QTimer.singleShot(500, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.getGameId, callback2))
+
+        def callback2(gameId):
+            print(gameId)
+            self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(5000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.checkReviewLimited, callback3)))
+            if(self.game_play_mode == Game_play_mode.computer_mode):
+                self.leftWidget.chessWebView.load(QUrl(f"https://www.chess.com/analysis/game/computer/{gameId}"))
+            else:
+                self.leftWidget.chessWebView.load(QUrl(f"https://www.chess.com/analysis/game/live/{gameId}"))
+
+        def callback3(ReviewLimited):
+            self.leftWidget.chessWebView.loadFinished.disconnect()
+            if(ReviewLimited):
+                print("You have used your free Game Review for the day.")
+            else:
+                self.leftWidget.key_signal.connect(self.analysisAction)
+                self.leftWidget.chessWebView.page().runJavaScript(js_function.clickStartReview, self.gameReviewMode_Reader)
+
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.clickGameReview, callback1)
+        
+
+    def gameReviewMode_Reader(self, comment):
+        print(comment)
+
+    def getReviewComment(self):
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.getReviewComment, self.gameReviewMode_Reader)
+
+    def analysisAction(self, key):
+        if(key in (Qt.Key.Key_Right, Qt.Key.Key_Left, Qt.Key.Key_Up, Qt.Key.Key_Down)):
+            self.getReviewComment()
+
     def voice_input(self):
         print("Ctrl S is pressed")
         voice_input_thread.activate = not voice_input_thread.activate
         if voice_input_thread.activate:
             print("Voice Input activated. Listening...")
 
-    def Action(self, str):
+    def voice_action(self, str):
         match(str):
             case "options":
                 self.helper_menu()
@@ -1876,6 +1916,7 @@ class MainWindow(QMainWindow):
         match self.main_flow_status:
             case Bot_flow_status.setting_status:
                 print("Choose the game mode that you want to play")
+
 
     
 ## load text to TTS queue

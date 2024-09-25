@@ -255,3 +255,65 @@ checkMoveSuccess = """
         return true;
     }
 """
+
+clickGameReview = """
+    function clickGameReview(){
+        for(let i of document?.querySelectorAll('button')){
+            console.log(i.textContent.trim().toLowerCase())
+            if(i.textContent.trim().toLowerCase() == "game review"){
+                i.click();
+                return true;
+            }
+        }
+        return false;
+    }
+    clickGameReview();
+"""
+
+getGameId = """
+    function getGameId(){
+        return document.URL.match(/\d+/)[0] //game id
+    }
+    getGameId();
+"""
+
+clickStartReview = """
+    function clickStartReview(){
+        for(let i of document?.querySelectorAll('button')){
+            if(i.textContent.trim().toLowerCase() == "start review"){
+                let overview = document.querySelector(".bot-speech-content-content-container").textContent;
+                i.click();
+                setTimeout(() => {
+                    document.querySelector('[aria-label="First Move"]').click();            
+                }, 300);
+                return overview;
+            }
+        }
+    }
+    clickStartReview();
+"""
+
+checkReviewLimited = """
+    function checkReviewLimited(){
+        if(document.querySelector('.modal-upgrade-game-review-limit')){
+            return true;
+        }
+        return false;
+    }
+    checkReviewLimited();
+"""
+
+getReviewComment = """
+    function getReviewComment(){
+        let selected = document.querySelector(".selected");
+        if(selected != null){
+            let icon = selected?.querySelector('.icon-font-chess')?.getAttribute('data-figurine');
+            if(icon == null){
+                icon = "";
+            }
+            return icon + document.querySelector(".move-feedback-box-move").textContent.trim();
+        }
+        return document.querySelector(".bot-speech-content-content-container").textContent.trim();
+    }
+    getReviewComment();
+"""

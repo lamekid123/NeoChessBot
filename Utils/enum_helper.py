@@ -6,7 +6,6 @@ class Game_play_mode(Enum):
     online_mode = "ONLINE_MODE"
     puzzle_mode = "PUZZLE_MODE"
 
-
 class Input_mode(Enum):
     command_mode = "COMMAND_MODE"
     arrow_mode = "ARROW_MDOE"
