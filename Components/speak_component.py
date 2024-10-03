@@ -15,6 +15,7 @@ class TTSThread(threading.Thread):
         self.tts_engine = pyttsx3.init("sapi5")    ## sapi5 for Windows, nsss for Mac, espeak for others
         self.tts_engine.setProperty("rate", 190)
         self.tts_engine.setProperty("volume", 0.7)
+        self.tts_engine.setProperty("voice", "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_ZIRA_11.0")
         self.tts_engine.startLoop(False)
         self.start()
 

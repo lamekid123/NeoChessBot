@@ -5,6 +5,7 @@ class Game_play_mode(Enum):
     computer_mode = "COMPUTER_MODE"
     online_mode = "ONLINE_MODE"
     puzzle_mode = "PUZZLE_MODE"
+    analysis_mode = "ANALYSIS_MODE"
 
 class Input_mode(Enum):
     command_mode = "COMMAND_MODE"
@@ -269,3 +270,10 @@ class timeControlDeterminant(Enum):
     timeControl_10_0_words = dict.fromkeys(["10+0", "10 + 0", "10|0", "10 | 0", "10 min", "10min", "ten minute", "10 minute", "10minute", "10 plus 0"], timeControl.timeControl_10_0.value)
     timeControl_15_10_words = dict.fromkeys(["15+10", "15 + 10", "15|10", "15 | 10", "fifteen plus ten", "15 plus 10", "fifteen + ten"], timeControl.timeControl_15_10.value)
     timeControl_30_0_words = dict.fromkeys(["30+0", "30 + 0", "30|0", "30 | 0", "30 min", "30min", "thirty minute", "30 minute", "30minute", "30 plus 0", "default"], timeControl.timeControl_10_0.value)
+
+class keyPressed(Enum):
+    leftArrow = "left"
+    rightArrow = "right"
+    upArrow = "upward"
+    downArrow = "downward"
+    keyB = "B"

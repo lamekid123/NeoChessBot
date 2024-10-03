@@ -149,3 +149,6 @@ class ChessBoard():
         
     def current_board(self):
         return self.board_object.fen()
+    
+    def parseSquare(self, pos):
+        return chess.parse_square(pos)

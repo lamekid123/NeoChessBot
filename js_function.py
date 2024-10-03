@@ -2,7 +2,7 @@ white_GetOpponentMove = """
     function getOpponentMove() {
         let player_color = "WHITE";
         let moveList = document.querySelectorAll(".main-line-row");
-        let LastMove;
+        let lastMove;
         let info;
         let opponent_move;
         let black_icon = ""
@@ -10,7 +10,10 @@ white_GetOpponentMove = """
             return "game end";
         }
         lastMove = moveList[moveList.length-1];
-        info = lastMove.textContent.trim().split("    ");
+        info = lastMove?.textContent.trim().split("   ");
+        if(document?.querySelector('[data-move-list-el]')){
+            info.splice(info.length-1, 1);
+        }
         if(info.length!=3){
             opponent_move = null;
         }
@@ -28,7 +31,7 @@ white_GetOpponentMove = """
             }
             opponent_move = black_icon + info[2].trim();
         }
-        return opponent_move;  
+        return opponent_move;
     }
     getOpponentMove();
     """
@@ -40,15 +43,18 @@ black_GetOpponentMove = """
     function getOpponentMove() {
         let player_color = "BLACK";
         let moveList = document.querySelectorAll(".main-line-row");
-        let LastMove;
+        let lastMove;
         let info;
         let opponent_move;
         let white_icon = ""
         if(moveList[moveList.length-1].outerHTML.includes("result")){
-            lastMove = moveList[moveList.length-2];
+            return "game end";
         }
         lastMove = moveList[moveList.length-1];
-        info = lastMove.textContent.trim().split("    "); 
+        info = lastMove.textContent.trim().split("   ");
+        if(document?.querySelector('[data-move-list-el]')){
+            info.splice(info.length-1, 1);
+        }
         if(info.length==3){
             opponent_move = null;    
         }
@@ -80,6 +86,9 @@ checkExistGame = """
                 let white_icon = "";
                 let black_icon = "";
                 let info = moveList[i].textContent.trim().split("    ");
+                if(document?.querySelector('[data-move-list-el]')){
+                    info.splice(info.length-1, 1);
+                }
                 let chessIcon = moveList[i].querySelectorAll(".icon-font-chess");
                 if(info.length==2){
                     if(chessIcon.length>0){
@@ -207,7 +216,7 @@ clickTimeControlButton = """
     function clickTimeControlButton(timeControl, login){
         document.querySelector('.selector-button-button').click();
         setTimeout(() => {
-            buttons = document.querySelectorAll('button');
+            let buttons = document.querySelectorAll('button');
             for(button of buttons){
                 if(button?.textContent?.trim()?.toLowerCase()==timeControl){
                     timeControlButton = button;
@@ -219,7 +228,7 @@ clickTimeControlButton = """
             timeControlButton.click();
             playButton.click();
             if(!login){
-                setTimeout(() => document.querySelector('.authentication-intro-guest').click(), 500);
+                setTimeout(() => document.querySelector('.authentication-intro-guest').click(), 100);
             }
         }, 100)
     }
@@ -283,6 +292,7 @@ clickStartReview = """
             if(i.textContent.trim().toLowerCase() == "start review"){
                 let overview = document.querySelector(".bot-speech-content-content-container").textContent;
                 i.click();
+                
                 setTimeout(() => {
                     document.querySelector('[aria-label="First Move"]').click();            
                 }, 300);
@@ -311,9 +321,37 @@ getReviewComment = """
             if(icon == null){
                 icon = "";
             }
-            return icon + document.querySelector(".move-feedback-box-move").textContent.trim();
+            let feedback = document.querySelector(".move-feedback-box-move").textContent.trim();
+            if(feedback.includes("=")){
+                let index = feedback.indexOf("is");
+                let lastSeq = feedback.substring(index, feedback.length);
+                feedback = selected.textContent + lastSeq; 
+            }
+            else{
+                feedback = icon + feedback;   
+            }
+            let explain = document.querySelector('.analysis-type-component')?.textContent;
+            let bestExist = false;
+            if(document.querySelector('.perfect')){
+                bestExist = true;
+            }
+            return [feedback, explain, bestExist];
         }
         return document.querySelector(".bot-speech-content-content-container").textContent.trim();
     }
     getReviewComment();
+"""
+
+getBestMove = """
+    function getBestMove(){
+        document.querySelector('.perfect').click();
+    }
+    getBestMove();
+"""
+
+getMoveLength = """
+    function getMoveLength(){
+        return document.querySelectorAll('.main-line-ply').length;
+    }
+    getMoveLength();
 """
