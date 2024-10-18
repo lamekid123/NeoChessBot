@@ -1590,6 +1590,8 @@ class MainWindow(QMainWindow):
         self.rightWidget.playWithOther_Rapid_15_10_Button.clicked.connect(lambda: self.online_select_timeControl(timeControl.timeControl_15_10.value))
         self.rightWidget.playWithOther_Rapid_30_0_Button.clicked.connect(lambda: self.online_select_timeControl(timeControl.timeControl_30_0.value))
 
+        self.rightWidget.returnToHomePageButton.clicked.connect(self.returnHomePage)
+
     def returnHomePage(self):
         self.leftWidget.chessWebView.load(QUrl("https://www.chess.com"))
         self.change_main_flow_status(Bot_flow_status.setting_status)
@@ -1620,7 +1622,7 @@ class MainWindow(QMainWindow):
             else:
                 self.leftWidget.key_signal.connect(self.analysisAction)
                 self.leftWidget.chessWebView.page().runJavaScript(js_function.clickStartReview, callback3)
-                self.game_play_mode = Game_play_mode.analysis_mode
+                self.change_game_mode(Game_play_mode.analysis_mode)
 
         def callback3(value):
             if(value == None):
@@ -1664,7 +1666,7 @@ class MainWindow(QMainWindow):
             sanString = self.feedback.split(" ")[0].strip()
             print(f"feedback: {self.feedback}")
             self.feedback = self.feedback.replace(sanString, self.analysisHumanForm(self.feedback))
-            self.rightWidget.analysisExplanation.setText("Explantion: \n" + self.explain)
+            self.rightWidget.analysisExplanation.setText("Explanation: \n" + self.explain)
 
             self.keyPressed = None
         else:
