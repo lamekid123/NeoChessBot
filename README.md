@@ -1,11 +1,9 @@
 # NeoChessBot
-NeoChessBot is a upgraded version of [ChessBot](https://github.com/GNOLNG/ChessBot) that with more functions on Chess.com being accessible.
-The original software addresses the lack of support for visually impaired users on Chess.com by introducing a keyboard-operated bot. The bot enables players to navigate the board and make moves using arrow keys and keyboard input, while also announcing the opponent's moves audibly.
-The current version added more time control selection for Online Game. Game Reivew Function when game ended.
+NeoChessBot is a upgraded version of [ChessBot](https://github.com/GNOLNG/ChessBot) that with more functions being accessible. The current version added more time control selection for Online Game, and Game Reivew Function when game ended.
 
 ## Quick Start
-1. Download the zip file that contain both source code and executable file.
-2. Unzip and launch the software by simply clicking 'NeoChessBot.exe' 
+1. Download the executable file on https://github.com/lamekid123/NeoChessBot/releases/download/v0.5/NeoChessBot.exe.
+2. Launch the software by simply clicking the downloaded 'NeoChessBot.exe'.
 
 ## How to use
 ***Only two key to remember***
@@ -69,8 +67,10 @@ The current version added more time control selection for Online Game. Game Reiv
 ***Game Review***
   - **Press 'A' (Analysis) to enter game review when game end. The bot will detect whether the game review limit is reached and announce to user.**
   - **After enter Game Review, the bot will provide the overall comment on your game.**
-  - **In Game Review Mode, press 'Right Arrow Key' will go to the next move, 'Left Arrow Key' will go to the previous move. The feedback will be provided automatically for each move.
-  - **Press 'E' (Explanation) to retrieve explanation of the current move. Sometimes the explanation will be 'None' as Chess.com does not provide any explanation.
+  - **In Game Review Mode, press 'Right Arrow Key' will go to the next move, 'Left Arrow Key' will go to the previous move. The feedback will be provided automatically for each move.**
+  - **Press 'E' (Explanation) to retrieve explanation of the current move. Sometimes the explanation will be 'None' as Chess.com does not provide any explanation.**
+  - **Press 'B' (Best Move) to get the Best Move of the Board provided by the Chess Engine.**
+
 
 ## FAQ
 

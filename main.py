@@ -227,7 +227,20 @@ class RightWidget(QWidget):
         self.playWithOther_Rapid_15_10_Button.setAutoDefault(True)
         self.playWithOther_Rapid_30_0_Button.setAutoDefault(True)
 
+        self.analysisCurrentMove = QLabel()
+        self.analysisCurrentMove.setText("Current Move: \n")
+        self.analysisCurrentMove.setWordWrap(True)
+
+        self.analysisComment = QLabel()
+        self.analysisComment.setText("Game Review Comment: \n")
+        self.analysisComment.setWordWrap(True)
+
+        self.analysisExplanation = QLabel()
+        self.analysisExplanation.setText("Explanation: \n")
+        self.analysisExplanation.setWordWrap(True)
+
         self.returnToHomePageButton = QPushButton("Return to Home Page")
+        self.returnToHomePageButton.setAccessibleDescription("Press to exit current mode")
 
         self.playWithComputerButton.setAutoDefault(True)
         self.playWithOtherButton.setAutoDefault(True)
@@ -288,6 +301,12 @@ class RightWidget(QWidget):
         self.online_mode_select_menu.append(self.playWithOther_Rapid_15_10_Button)
         self.online_mode_select_menu.append(self.playWithOther_Rapid_30_0_Button)
 
+        self.analysis_menu = []
+        self.analysis_menu.append(self.analysisCurrentMove)
+        self.analysis_menu.append(self.analysisComment)
+        self.analysis_menu.append(self.analysisExplanation)
+        self.analysis_menu.append(self.returnToHomePageButton)
+
         self.setting_layout = QVBoxLayout()
         # self.setting_layout.addWidget(self.screen_reader_checkBox)
         for item in self.setting_menu:
@@ -300,6 +319,11 @@ class RightWidget(QWidget):
         for item in self.online_mode_select_menu:
             self.setting_layout.addWidget(item)
             item.hide()
+
+        for item in self.analysis_menu:
+            self.setting_layout.addWidget(item)
+            item.hide()
+
         self.setLayout(self.setting_layout)
 
 
@@ -377,8 +401,8 @@ class MainWindow(QMainWindow):
                 self.rightWidget.opponentBox.setText("Opponent move: \n")
                 for label in self.leftWidget.grids.values():
                     label.deleteLater()
-                for item in self.rightWidget.play_menu:
-                    item.hide()
+                for item in range(self.rightWidget.setting_layout.count()):
+                    self.rightWidget.setting_layout.itemAt(item).widget().hide()
                 for item in self.rightWidget.setting_menu:
                     item.show()
                 self.rightWidget.playWithComputerButton.setFocus()
@@ -430,6 +454,15 @@ class MainWindow(QMainWindow):
                 self.currentFoucs = len(self.rightWidget.play_menu)
                 self.main_flow_status = Bot_flow_status.game_play_status
                 return
+            
+    def change_game_mode(self, mode):
+        match mode:
+            case Game_play_mode.analysis_mode:
+                self.game_play_mode = Game_play_mode.analysis_mode
+                for item in range(self.rightWidget.setting_layout.count()):
+                    self.rightWidget.setting_layout.itemAt(item).widget().hide()
+                for item in self.rightWidget.analysis_menu:
+                    item.show()
 
     ##initialize a vs computer game for user
     def playWithComputerHandler(self):
@@ -449,7 +482,7 @@ class MainWindow(QMainWindow):
             "computer engine mode <>" + Speak_template.initialize_game_sentense.value,
             True,
         )
-        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(2000, self.checkExistGame))
+        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(2000, self.default_bot))
 
         self.leftWidget.chessWebView.load(
             QUrl("https://www.chess.com/play/computer/komodo1")
@@ -1557,6 +1590,10 @@ class MainWindow(QMainWindow):
         self.rightWidget.playWithOther_Rapid_15_10_Button.clicked.connect(lambda: self.online_select_timeControl(timeControl.timeControl_15_10.value))
         self.rightWidget.playWithOther_Rapid_30_0_Button.clicked.connect(lambda: self.online_select_timeControl(timeControl.timeControl_30_0.value))
 
+    def returnHomePage(self):
+        self.leftWidget.chessWebView.load(QUrl("https://www.chess.com"))
+        self.change_main_flow_status(Bot_flow_status.setting_status)
+
 ## Game Review Function
     def analysis(self):
         def setMoveLength(length):
@@ -1627,6 +1664,7 @@ class MainWindow(QMainWindow):
             sanString = self.feedback.split(" ")[0].strip()
             print(f"feedback: {self.feedback}")
             self.feedback = self.feedback.replace(sanString, self.analysisHumanForm(self.feedback))
+            self.rightWidget.analysisExplanation.setText("Explantion: \n" + self.explain)
 
             self.keyPressed = None
         else:
@@ -1635,6 +1673,7 @@ class MainWindow(QMainWindow):
             self.feedback = comment
 
         print(self.analysisBoard.board_object)
+        self.rightWidget.analysisComment.setText("Game Review Comment: \n" + self.feedback)
         print(self.feedback)
         speak(self.feedback)
 
@@ -1721,6 +1760,8 @@ class MainWindow(QMainWindow):
             self.analysisBoard.board_object.push(self.poppedMove)
         else:
             self.analysisBoard.board_object.push_san(sanString)
+
+        self.rightWidget.analysisCurrentMove.setText("Current Move: \n" + result)
         return result
 
 ## Game Review Function End
