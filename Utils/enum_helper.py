@@ -1,6 +1,5 @@
 from enum import Enum
 
-
 class Game_play_mode(Enum):
     computer_mode = "COMPUTER_MODE"
     online_mode = "ONLINE_MODE"

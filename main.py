@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QMessageBox,
     QCheckBox,
+    QFormLayout,
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
@@ -21,6 +22,7 @@ from PyQt6.QtCore import QUrl, Qt, QTimer, QRect, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QIcon
 
 
+import Components.js_function as js_function
 from Components.board_detection_component import detectChessboard, userColor        ## header file
 from Components.piece_move_component import widgetDragDrop, widgetClick, moveLeft, moveRight, moveUp, moveDown, moveTopLeft, moveBottomLeft, moveBottomRight, moveTopRight 
 from Components.chess_validation_component import ChessBoard
@@ -38,14 +40,12 @@ from Utils.enum_helper import (
     timeControlDeterminant,
     keyPressed
 )
-from PyQt6 import QtWidgets
 
 import pyaudio
 import wave
 import whisper
 import torch
 
-import js_function
 
 import time
 
@@ -117,21 +117,7 @@ class LeftWidget(QWidget):
         vlayout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(vlayout)
 
-        self.userLoginName = ""
         self.grids = dict()
-
-    # check whether user logined
-    def checkLogined(self):
-        def callback(x):
-            self.userLoginName = x
-
-        jsCode = """
-            function checkLogin() {{
-                return document.querySelector(".home-user-info")?.outerText
-            }}
-            checkLogin();
-            """
-        self.chessWebView.page().runJavaScript(jsCode, callback)
 
     # crawl remaining time
     def checkTime(self, callBack):
@@ -176,6 +162,32 @@ class RightWidget(QWidget):
     def __init__(self):
         super().__init__()
         global internal_speak_engine
+
+        self.loginButton = QPushButton("Login")
+        self.loginButton.setAccessibleDescription("Login your Chess.com account for more functions")
+
+
+        self.loginAccount_Label = QLabel()
+        self.loginAccount_Label.setText("Account Username or Email\n")
+        self.loginAccount_Input = QLineEdit()
+        self.loginAccount_Input.setPlaceholderText("Username or Email")
+        self.loginAccount_Input.setAccessibleDescription("The place to type in Username or Email")
+
+        self.loginPassword_Label = QLabel()
+        self.loginPassword_Label.setText("Password\n")
+        self.loginPassword_Input = QLineEdit()
+        self.loginPassword_Input.setPlaceholderText("Password")
+        self.loginPassword_Input.setAccessibleDescription("The place to type in Password")
+        self.loginPassword_Input.setEchoMode(QLineEdit.EchoMode.Password)
+
+        self.loginLayout = QFormLayout()
+        self.loginLayout.addRow(self.loginAccount_Label, self.loginAccount_Input)
+        self.loginLayout.addRow(self.loginPassword_Label, self.loginPassword_Input)
+        self.loginLayout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
+
+        self.loginPassword_Layout = QHBoxLayout()
+        self.loginPassword_Layout.addWidget(self.loginPassword_Label)
+        self.loginPassword_Layout.addWidget(self.loginPassword_Input)
 
         self.screen_reader_checkBox = QCheckBox("Use internal speak engine")
         self.screen_reader_checkBox.setChecked(True)
@@ -228,21 +240,24 @@ class RightWidget(QWidget):
         self.playWithOther_Rapid_15_10_Button = QPushButton("15 + 10")
         self.playWithOther_Rapid_30_0_Button = QPushButton("30 + 0")
 
-        self.playWithOther_Bullet_1_0_Button.setAutoDefault(True)
-        self.playWithOther_Bullet_1_1_Button.setAutoDefault(True)
-        self.playWithOther_Bullet_2_1_Button.setAutoDefault(True)
-        self.playWithOther_Blitz_3_0_Button.setAutoDefault(True)
-        self.playWithOther_Blitz_3_2_Button.setAutoDefault(True)
-        self.playWithOther_Blitz_5_0_Button.setAutoDefault(True)
-        self.playWithOther_Rapid_10_0_Button.setAutoDefault(True)
-        self.playWithOther_Rapid_15_10_Button.setAutoDefault(True)
-        self.playWithOther_Rapid_30_0_Button.setAutoDefault(True)
-
         self.puzzleModeButton = QPushButton("Puzzle Mode")
 
-        self.playWithComputerButton.setAutoDefault(True)
-        self.playWithOtherButton.setAutoDefault(True)
-        self.puzzleModeButton.setAutoDefault(True)
+        self.analysisCurrentMove = QLabel()
+        self.analysisCurrentMove.setText("Current Move: \n")
+        self.analysisCurrentMove.setWordWrap(True)
+
+        self.analysisComment = QLabel()
+        self.analysisComment.setText("Game Review Comment: \n")
+        self.analysisComment.setWordWrap(True)
+
+        self.analysisExplanation = QLabel()
+        self.analysisExplanation.setText("Explanation: \n")
+        self.analysisExplanation.setWordWrap(True)
+
+        self.returnToHomePageButton = QPushButton("Return to Home Page")
+        self.returnToHomePageButton.setAccessibleDescription("Press to exit current mode")
+
+        self.returnToHomePageButton.setAutoDefault(True)
 
         self.colorBox = QLabel()
         self.colorBox.setText("Assigned Color: ")
@@ -277,6 +292,7 @@ class RightWidget(QWidget):
         self.check_position.setFont(font)
 
         self.setting_menu = []
+        self.setting_menu.append(self.loginButton)
         self.setting_menu.append(self.playWithComputerButton)
         self.setting_menu.append(self.playWithOtherButton)
         self.setting_menu.append(self.puzzleModeButton)
@@ -300,10 +316,29 @@ class RightWidget(QWidget):
         self.online_mode_select_menu.append(self.playWithOther_Rapid_15_10_Button)
         self.online_mode_select_menu.append(self.playWithOther_Rapid_30_0_Button)
 
+        self.analysis_menu = []
+        self.analysis_menu.append(self.analysisCurrentMove)
+        self.analysis_menu.append(self.analysisComment)
+        self.analysis_menu.append(self.analysisExplanation)
+        self.analysis_menu.append(self.returnToHomePageButton)
+
         self.setting_layout = QVBoxLayout()
+        self.setting_layout.addSpacing(20)
         # self.setting_layout.addWidget(self.screen_reader_checkBox)
+
+        self.setting_layout.addLayout(self.loginLayout)
+        for item in range(self.loginLayout.rowCount()):
+            label_item = self.loginLayout.itemAt(item, QFormLayout.ItemRole.LabelRole)
+            field_item = self.loginLayout.itemAt(item, QFormLayout.ItemRole.FieldRole)
+            
+            if label_item and label_item.widget():
+                label_item.widget().setVisible(False)
+            if field_item and field_item.widget():
+                field_item.widget().setVisible(False)
+
         for item in self.setting_menu:
             self.setting_layout.addWidget(item)
+            item.setAutoDefault(True)
 
         for item in self.play_menu:
             self.setting_layout.addWidget(item)
@@ -311,7 +346,13 @@ class RightWidget(QWidget):
 
         for item in self.online_mode_select_menu:
             self.setting_layout.addWidget(item)
+            item.setAutoDefault(True)
             item.hide()
+
+        for item in self.analysis_menu:
+            self.setting_layout.addWidget(item)
+            item.hide()
+
         self.setLayout(self.setting_layout)
 
 
@@ -366,6 +407,66 @@ class MainWindow(QMainWindow):
         message_box.setFocus()
         message_box.exec()
 
+    # check whether user logined
+    def checkLogined(self):
+        def callback(x):
+            self.userLoginName = x
+            if(self.userLoginName != None):
+                self.rightWidget.setting_layout.removeWidget(self.rightWidget.loginButton)
+                self.rightWidget.setting_menu.remove(self.rightWidget.loginButton)
+                self.rightWidget.loginButton.hide()
+
+        jsCode = """
+            function checkLogin() {{
+                return document.querySelector(".home-user-info")?.outerText
+            }}
+            checkLogin();
+            """
+        self.leftWidget.chessWebView.page().runJavaScript(jsCode, callback)
+
+    # User Login
+    def loginHandler(self):
+        self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/login_and_go?returnUrl=https://www.chess.com/"))
+        for item in self.rightWidget.setting_menu:
+            item.hide()
+        for item in range(self.rightWidget.loginLayout.rowCount()):
+            label_item = self.rightWidget.loginLayout.itemAt(item, QFormLayout.ItemRole.LabelRole)
+            field_item = self.rightWidget.loginLayout.itemAt(item, QFormLayout.ItemRole.FieldRole)
+            
+            if label_item and label_item.widget():
+                label_item.widget().setVisible(True)
+            if field_item and field_item.widget():
+                field_item.widget().setVisible(True)
+
+    def loginAction(self):
+        def checkLogin(success):
+            if(success):
+                for item in range(self.rightWidget.loginLayout.rowCount()):
+                    label_item = self.rightWidget.loginLayout.itemAt(item, QFormLayout.ItemRole.LabelRole)
+                    field_item = self.rightWidget.loginLayout.itemAt(item, QFormLayout.ItemRole.FieldRole)
+                    if label_item and label_item.widget():
+                        label_item.widget().setVisible(False)
+                    if field_item and field_item.widget():
+                        field_item.widget().setVisible(False)
+                self.rightWidget.setting_layout.removeWidget(self.rightWidget.loginButton)
+                self.rightWidget.setting_menu.remove(self.rightWidget.loginButton)
+                for item in self.rightWidget.setting_menu:
+                    item.show()
+            else:
+                print("The username or password is incorrect.")
+
+        username = self.rightWidget.loginAccount_Input.text()
+        password = self.rightWidget.loginPassword_Input.text()
+        self.rightWidget.loginAccount_Input.clear()
+        self.rightWidget.loginPassword_Input.clear()
+        if(username == None or password == None):
+            print("Invalid Input")
+            return
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.userLogin + f"userLogin('{username}', '{password}')")
+        QTimer.singleShot(5000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.loginSuccess, checkLogin))
+
+
+
     ##change the application flow status and re-init / clean the variable
     def change_main_flow_status(self, status):
         print("change status", status)
@@ -375,7 +476,6 @@ class MainWindow(QMainWindow):
                 self.check_game_end_timer.stop()
                 self.getScoreTimer.stop()
                 self.main_flow_status = Bot_flow_status.setting_status
-                self.game_flow_status = Game_flow_status.not_start
                 self.input_mode = Input_mode.command_mode
                 self.rightWidget.commandPanel.setAccessibleDescription(
                     "type the letter 'C' for computer mode, type the letter 'O' for online players mode "
@@ -390,8 +490,8 @@ class MainWindow(QMainWindow):
                 self.rightWidget.opponentBox.setText("Opponent move: \n")
                 for label in self.leftWidget.grids.values():
                     label.deleteLater()
-                for item in self.rightWidget.play_menu:
-                    item.hide()
+                for item in range(self.rightWidget.setting_layout.count()):
+                    self.rightWidget.setting_layout.itemAt(item).widget().hide()
                 for item in self.rightWidget.setting_menu:
                     item.show()
                 self.rightWidget.playWithComputerButton.setFocus()
@@ -401,6 +501,7 @@ class MainWindow(QMainWindow):
                 
             case Bot_flow_status.select_status:
                 self.main_flow_status = Bot_flow_status.select_status
+                self.game_flow_status = Game_flow_status.not_start
                 self.currentFoucs = 0
                 for item in self.rightWidget.setting_menu:
                     item.hide()
@@ -440,10 +541,17 @@ class MainWindow(QMainWindow):
                 self.check_game_end_timer.start(2000)
                 self.rightWidget.commandPanel.setFocus()
                 self.currentFoucs = len(self.rightWidget.play_menu)
-                with open ("./stockfishTicket.txt", 'w') as stockfishTicket:
-                    stockfishTicket.write('3')
                 self.main_flow_status = Bot_flow_status.game_play_status
                 return
+            
+    def change_game_mode(self, mode):
+        match mode:
+            case Game_play_mode.analysis_mode:
+                self.game_play_mode = Game_play_mode.analysis_mode
+                for item in range(self.rightWidget.setting_layout.count()):
+                    self.rightWidget.setting_layout.itemAt(item).widget().hide()
+                for item in self.rightWidget.analysis_menu:
+                    item.show()
 
     ##initialize a vs computer game for user
     def playWithComputerHandler(self):
@@ -476,7 +584,7 @@ class MainWindow(QMainWindow):
                 self.getColor()
                 self.getBoard()
         
-        if self.leftWidget.userLoginName != None:
+        if self.userLoginName != None:
             self.clickWebButton(
                 [("button", "start"), ("button", "choose"), ("button", "play")],
                 0,
@@ -537,8 +645,8 @@ class MainWindow(QMainWindow):
             item.hide()
         for item in self.rightWidget.play_menu:
             item.show()
-        if self.leftWidget.userLoginName != None:
-            print("login name", self.leftWidget.userLoginName)
+        if self.userLoginName != None:
+            print("login name", self.userLoginName)
             self.leftWidget.chessWebView.page().runJavaScript(js_function.clickTimeControlButton + f"clickTimeControlButton('{timeControl}', true)", clickNCapture)
         else:
             print("No login")
@@ -577,6 +685,8 @@ class MainWindow(QMainWindow):
 
         self.leftWidget.chessWebView.loadFinished.disconnect()
         self.leftWidget.chessWebView.page().runJavaScript(js_function.checkExistGame, callback)
+
+## Puzzle Mode Start:
 
     def puzzleModeHandler(self):
         self.game_play_mode = Game_play_mode.puzzle_mode
@@ -769,6 +879,8 @@ class MainWindow(QMainWindow):
 
         self.leftWidget.chessWebView.page().runJavaScript(js_function.clickNextPuzzle, callback)
 
+## Puzzle Mode End
+
     ##convert move to human readable form
     def move_to_human_form(self, attackerColor, uciString, sanString):
         counter_color = "WHITE" if attackerColor == "BLACK" else "BLACK"
@@ -896,7 +1008,7 @@ class MainWindow(QMainWindow):
                 return
 
             if (
-                self.leftWidget.userLoginName == None
+                self.userLoginName == None
                 or self.game_play_mode == Game_play_mode.computer_mode
             ):
                 self.clickWebButton(
@@ -1294,24 +1406,19 @@ class MainWindow(QMainWindow):
 
     ##Check whether opponent resigned
     def check_game_end(self):
-        def callback(x):
-            win_move = None
-            win_index = None
-            reason = None
-            if x == "game end":
-                    self.game_flow_status = Game_flow_status.game_end
-                    self.change_main_flow_status(Bot_flow_status.setting_status)
-                    self.getScoreTimer.start(1000)
-                    self.getOpponentMoveTimer.stop()
-                    print("game end")
-                    speak("game end")
-         
-        if(self.userColor=="WHITE"):
-            jsCode = js_function.white_GetOpponentMove
-        else:
-            jsCode = js_function.black_GetOpponentMove
+        def callback(result):
+            if result:
+                self.game_flow_status = Game_flow_status.game_end
+                self.change_main_flow_status(Bot_flow_status.setting_status)
+                self.getScoreTimer.start(1000)
+                self.getOpponentMoveTimer.stop()
+                print(result)
+                speak(result)
 
-        self.leftWidget.chessWebView.page().runJavaScript(jsCode, callback)
+        if(self.game_play_mode == Game_play_mode.computer_mode):
+            self.leftWidget.chessWebView.page().runJavaScript(js_function.checkGameEnd + 'checkGameEnd("computer");', callback)
+        else:
+            self.leftWidget.chessWebView.page().runJavaScript(js_function.checkGameEnd + 'checkGameEnd("online");', callback)
 
     ##JS to get opponent move SAN
     def getOpponentMove(self):
@@ -1619,7 +1726,7 @@ class MainWindow(QMainWindow):
             intro = unhidden_widgets[self.currentFoucs].text()
             if intro == "":
                 intro = unhidden_widgets[self.currentFoucs].accessibleDescription()
-            # speak(intro)
+            speak(intro)
         else:
             self.leftWidget.grids[self.currentFoucs].setFocus()
 
@@ -1667,6 +1774,7 @@ class MainWindow(QMainWindow):
         self.chess_position = [a + b for a in [x.lower() for x in self.alphabet] for b in self.number]
         self.moveList = []
         self.FenNotation = ""
+        self.userLoginName = ""
         self.previous_game_exist = False
         self.boardDescription = []
 
@@ -1726,10 +1834,11 @@ class MainWindow(QMainWindow):
         shortcut_c = QShortcut(QKeySequence("c"), self)
         shortcut_c.activated.connect(lambda: print(f"current main flow status: {self.main_flow_status}"))
 
-        shortcut_a = QShortcut(QKeySequence("a"), self)
-        shortcut_a.activated.connect(self.analysis)
+        shortcut_A = QShortcut(QKeySequence("A"), self)
+        shortcut_A.activated.connect(self.analysis)
         
         self.all_shortcut = {
+            "A": shortcut_A,
             "F": shortcut_F,
             "J": shortcut_J,
             "UP": shortcut_UP,
@@ -1782,14 +1891,20 @@ class MainWindow(QMainWindow):
 
         self.rightWidget.resign.clicked.connect(self.resign_handler)
 
+        self.rightWidget.loginButton.clicked.connect(self.loginHandler)
+
         self.rightWidget.commandPanel.returnPressed.connect(self.CommandPanelHandler)
         self.rightWidget.check_position.returnPressed.connect(
             self.check_position_handler
         )
 
+        self.rightWidget.loginAccount_Input.returnPressed.connect(self.loginAction)
+        self.rightWidget.loginPassword_Input.returnPressed.connect(self.loginAction)
+
         self.rightWidget.selectPanel.returnPressed.connect(self.selectPanelHandler)
 
-        self.leftWidget.chessWebView.loadFinished.connect(self.leftWidget.checkLogined)
+
+        self.leftWidget.chessWebView.loadFinished.connect(self.checkLogined)
 
         self.leftWidget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
@@ -1829,46 +1944,68 @@ class MainWindow(QMainWindow):
         self.rightWidget.playWithOther_Rapid_15_10_Button.clicked.connect(lambda: self.online_select_timeControl(timeControl.timeControl_15_10.value))
         self.rightWidget.playWithOther_Rapid_30_0_Button.clicked.connect(lambda: self.online_select_timeControl(timeControl.timeControl_30_0.value))
 
+        self.rightWidget.returnToHomePageButton.clicked.connect(self.returnHomePage)
+
         voice_input_thread.action_signal.connect(self.voice_action)
 
+    def returnHomePage(self):
+        self.leftWidget.chessWebView.load(QUrl("https://www.chess.com"))
+        self.change_main_flow_status(Bot_flow_status.setting_status)
+
+## Game Review Function
     def analysis(self):
         def setMoveLength(length):
             self.moveLength = length
             print(f"moveLength = {self.moveLength}")
 
-        def callback1(x):
-            QTimer.singleShot(500, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.getGameId, callback2))
+        def callback0(x):
+            QTimer.singleShot(500, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.getGameId, callback1))
 
-        def callback2(gameId):
+        def callback1(gameId):
             print(gameId)
-            self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(5000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.checkReviewLimited, callback3)))
+            self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(3000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.checkReviewLimited, callback2)))
             if(self.game_play_mode == Game_play_mode.computer_mode):
                 self.leftWidget.chessWebView.load(QUrl(f"https://www.chess.com/analysis/game/computer/{gameId}"))
             else:
                 self.leftWidget.chessWebView.load(QUrl(f"https://www.chess.com/analysis/game/live/{gameId}"))
 
-        def callback3(ReviewLimited):
+        def callback2(ReviewLimited):
+            print(f"Reivew Limited: {ReviewLimited}")
             self.leftWidget.chessWebView.loadFinished.disconnect()
             if(ReviewLimited):
                 print("You have used your free Game Review for the day.")
             else:
                 self.leftWidget.key_signal.connect(self.analysisAction)
-                self.leftWidget.chessWebView.page().runJavaScript(js_function.clickStartReview, callback4)
-                self.game_play_mode = Game_play_mode.analysis_mode
+                self.leftWidget.chessWebView.page().runJavaScript(js_function.clickStartReview, callback3)
+                self.change_game_mode(Game_play_mode.analysis_mode)
+
+        def callback3(value):
+            if(value == None):
+                self.leftWidget.chessWebView.page().runJavaScript(js_function.clickStartReview, callback3)
+            else:
+                callback4(value)
 
         def callback4(comment):
             QTimer.singleShot(300, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.getMoveLength, setMoveLength))
+            self.leftWidget.chessWebView.setFocus()
             self.gameReviewMode_Reader(comment)
 
         # if(self.game_flow_status != Game_flow_status.game_end):
         #     print("No finished game for analysis")
+        #     speak("No finished game for analysis")
         #     return
+        
+        # if(self.leftWidget.userLoginName != None):
+        #     print("Please login for Game Review Function")
+        #     speak("Please login for Game Review Function")
+        #     return
+        
         self.bestExist = False
         self.analysisCount = 0
         self.analysisBoard = ChessBoard()
         self.keyPressed = None
         self.moveLength = -1
-        self.leftWidget.chessWebView.page().runJavaScript(js_function.clickGameReview, callback1)
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.clickGameReview, callback0)
         
     def gameReviewMode_Reader(self, comment):
         print(comment)
@@ -1888,6 +2025,7 @@ class MainWindow(QMainWindow):
             sanString = self.feedback.split(" ")[0].strip()
             print(f"feedback: {self.feedback}")
             self.feedback = self.feedback.replace(sanString, self.analysisHumanForm(self.feedback))
+            self.rightWidget.analysisExplanation.setText("Explanation: \n" + self.explain)
 
             self.keyPressed = None
         else:
@@ -1896,6 +2034,7 @@ class MainWindow(QMainWindow):
             self.feedback = comment
 
         print(self.analysisBoard.board_object)
+        self.rightWidget.analysisComment.setText("Game Review Comment: \n" + self.feedback)
         print(self.feedback)
         speak(self.feedback)
 
@@ -1982,8 +2121,13 @@ class MainWindow(QMainWindow):
             self.analysisBoard.board_object.push(self.poppedMove)
         else:
             self.analysisBoard.board_object.push_san(sanString)
+
+        self.rightWidget.analysisCurrentMove.setText("Current Move: \n" + result)
         return result
-                
+
+## Game Review Function End
+## Voice Input Function
+
     def voice_input(self):
         print("Ctrl S is pressed")
         voice_input_thread.activate = not voice_input_thread.activate
