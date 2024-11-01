@@ -166,28 +166,14 @@ class RightWidget(QWidget):
         self.loginButton = QPushButton("Login")
         self.loginButton.setAccessibleDescription("Login your Chess.com account for more functions")
 
-
-        self.loginAccount_Label = QLabel()
-        self.loginAccount_Label.setText("Account Username or Email\n")
         self.loginAccount_Input = QLineEdit()
         self.loginAccount_Input.setPlaceholderText("Username or Email")
         self.loginAccount_Input.setAccessibleDescription("The place to type in Username or Email")
 
-        self.loginPassword_Label = QLabel()
-        self.loginPassword_Label.setText("Password\n")
         self.loginPassword_Input = QLineEdit()
         self.loginPassword_Input.setPlaceholderText("Password")
         self.loginPassword_Input.setAccessibleDescription("The place to type in Password")
         self.loginPassword_Input.setEchoMode(QLineEdit.EchoMode.Password)
-
-        self.loginLayout = QFormLayout()
-        self.loginLayout.addRow(self.loginAccount_Label, self.loginAccount_Input)
-        self.loginLayout.addRow(self.loginPassword_Label, self.loginPassword_Input)
-        self.loginLayout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
-
-        self.loginPassword_Layout = QHBoxLayout()
-        self.loginPassword_Layout.addWidget(self.loginPassword_Label)
-        self.loginPassword_Layout.addWidget(self.loginPassword_Input)
 
         self.screen_reader_checkBox = QCheckBox("Use internal speak engine")
         self.screen_reader_checkBox.setChecked(True)
@@ -291,6 +277,10 @@ class RightWidget(QWidget):
         self.commandPanel.setFont(font)
         self.check_position.setFont(font)
 
+        self.login_menu = []
+        self.login_menu.append(self.loginAccount_Input)
+        self.login_menu.append(self.loginPassword_Input)
+
         self.setting_menu = []
         self.setting_menu.append(self.loginButton)
         self.setting_menu.append(self.playWithComputerButton)
@@ -323,22 +313,16 @@ class RightWidget(QWidget):
         self.analysis_menu.append(self.returnToHomePageButton)
 
         self.setting_layout = QVBoxLayout()
-        self.setting_layout.addSpacing(20)
         # self.setting_layout.addWidget(self.screen_reader_checkBox)
 
-        self.setting_layout.addLayout(self.loginLayout)
-        for item in range(self.loginLayout.rowCount()):
-            label_item = self.loginLayout.itemAt(item, QFormLayout.ItemRole.LabelRole)
-            field_item = self.loginLayout.itemAt(item, QFormLayout.ItemRole.FieldRole)
             
-            if label_item and label_item.widget():
-                label_item.widget().setVisible(False)
-            if field_item and field_item.widget():
-                field_item.widget().setVisible(False)
-
         for item in self.setting_menu:
             self.setting_layout.addWidget(item)
             item.setAutoDefault(True)
+
+        for item in self.login_menu:
+            self.setting_layout.addWidget(item)
+            item.hide()
 
         for item in self.play_menu:
             self.setting_layout.addWidget(item)
@@ -426,28 +410,10 @@ class MainWindow(QMainWindow):
 
     # User Login
     def loginHandler(self):
-        self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/login_and_go?returnUrl=https://www.chess.com/"))
-        for item in self.rightWidget.setting_menu:
-            item.hide()
-        for item in range(self.rightWidget.loginLayout.rowCount()):
-            label_item = self.rightWidget.loginLayout.itemAt(item, QFormLayout.ItemRole.LabelRole)
-            field_item = self.rightWidget.loginLayout.itemAt(item, QFormLayout.ItemRole.FieldRole)
-            
-            if label_item and label_item.widget():
-                label_item.widget().setVisible(True)
-            if field_item and field_item.widget():
-                field_item.widget().setVisible(True)
-
-    def loginAction(self):
         def checkLogin(success):
             if(success):
-                for item in range(self.rightWidget.loginLayout.rowCount()):
-                    label_item = self.rightWidget.loginLayout.itemAt(item, QFormLayout.ItemRole.LabelRole)
-                    field_item = self.rightWidget.loginLayout.itemAt(item, QFormLayout.ItemRole.FieldRole)
-                    if label_item and label_item.widget():
-                        label_item.widget().setVisible(False)
-                    if field_item and field_item.widget():
-                        field_item.widget().setVisible(False)
+                for item in self.rightWidget.login_menu:
+                    item.hide()
                 self.rightWidget.setting_layout.removeWidget(self.rightWidget.loginButton)
                 self.rightWidget.setting_menu.remove(self.rightWidget.loginButton)
                 for item in self.rightWidget.setting_menu:
@@ -471,6 +437,15 @@ class MainWindow(QMainWindow):
     def change_main_flow_status(self, status):
         print("change status", status)
         match status:
+            case Bot_flow_status.login_status:
+                self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/login_and_go?returnUrl=https://www.chess.com/"))
+                self.main_flow_status = Bot_flow_status.login_status    
+                for item in self.rightWidget.setting_menu:
+                    item.hide()
+                for item in self.rightWidget.login_menu:
+                    item.show()
+                self.rightWidget.loginAccount_Input.setFocus()
+
             case Bot_flow_status.setting_status:
                 self.getOpponentMoveTimer.stop()
                 self.check_game_end_timer.stop()
@@ -1727,6 +1702,7 @@ class MainWindow(QMainWindow):
             if intro == "":
                 intro = unhidden_widgets[self.currentFoucs].accessibleDescription()
             speak(intro)
+            
         else:
             self.leftWidget.grids[self.currentFoucs].setFocus()
 
@@ -1836,6 +1812,10 @@ class MainWindow(QMainWindow):
 
         shortcut_A = QShortcut(QKeySequence("A"), self)
         shortcut_A.activated.connect(self.analysis)
+
+        shortcut_q = QShortcut(QKeySequence("q"), self)
+        shortcut_q.activated.connect(lambda: print(self.rightWidget.setting_layout.count()))
+        
         
         self.all_shortcut = {
             "A": shortcut_A,
@@ -1891,15 +1871,15 @@ class MainWindow(QMainWindow):
 
         self.rightWidget.resign.clicked.connect(self.resign_handler)
 
-        self.rightWidget.loginButton.clicked.connect(self.loginHandler)
+        self.rightWidget.loginButton.clicked.connect(lambda: self.change_main_flow_status(Bot_flow_status.login_status))
 
         self.rightWidget.commandPanel.returnPressed.connect(self.CommandPanelHandler)
         self.rightWidget.check_position.returnPressed.connect(
             self.check_position_handler
         )
 
-        self.rightWidget.loginAccount_Input.returnPressed.connect(self.loginAction)
-        self.rightWidget.loginPassword_Input.returnPressed.connect(self.loginAction)
+        self.rightWidget.loginAccount_Input.returnPressed.connect(self.loginHandler)
+        self.rightWidget.loginPassword_Input.returnPressed.connect(self.loginHandler)
 
         self.rightWidget.selectPanel.returnPressed.connect(self.selectPanelHandler)
 
@@ -2204,7 +2184,7 @@ class VoiceInput_Thread(QThread):
         super(VoiceInput_Thread, self).__init__()
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = whisper.load_model("base.en", device=device)
+        self.model = whisper.load_model("small.en", device=device)
         
         self.audio_input = "test.wav"
         self.text_output = ""
@@ -2243,7 +2223,7 @@ class VoiceInput_Thread(QThread):
                 self.frames=[]
                 self.activate = False
                 print("Speech to Text performing...")
-                self.text_output = self.model.transcribe("tmp.wav", fp16=False)["text"].lower()
+                self.text_output = self.model.transcribe("./tmp.wav", fp16=False)["text"].lower()
                 print(f"Speech to Text finished! Output: {self.text_output}")
                 self.checkAction()
 
@@ -2301,7 +2281,9 @@ class VoiceInput_Thread(QThread):
                 self.chess_move.append(moves)
         print(f"chess move = {self.chess_move}")
         if(len(self.chess_move)==2):
+            print(self.chess_move[0], self.chess_move[1])
             self.chess_move = "".join(self.chess_move[0] + self.chess_move[1])
+            print(self.chess_move)
             print("move triggered")
             self.action_signal.emit("move")
         else:

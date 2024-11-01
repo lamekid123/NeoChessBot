@@ -12,6 +12,7 @@ class Input_mode(Enum):
 
 
 class Bot_flow_status(Enum):
+    login_status = "LOGIN_STATUS"
     setting_status = "SETTING_STATUS"
     select_status = "SELECT_STATUS"
     board_init_status = "BOARD_INIT_STATUS"
