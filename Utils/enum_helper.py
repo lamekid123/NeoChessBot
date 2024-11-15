@@ -32,19 +32,23 @@ class Speak_template(Enum):
     welcome_sentense = "Welcome to chess bot!! "
     game_intro_sentense = "you can press control O to find the options. <> press control R to repeat last sentence"
     setting_state_help_message = (
-        "tab and choose play with computer engine or other online player"
+        "Press Control 1 to play with computer. Press Control 2 to play with other online player. Or press tab key to select from buttons"
     )
 
     ###initialization
     initialize_game_sentense = "Initializing game for you"
     init_state_help_message = "please wait the initializing process"
 
+    #Select State
+    select_computer_help_message = "Press Tab key to select the bot category and choose the bot you want to play with."
+    select_online_help_message = "Press Tab key to select the Time Control for Online Game."
+
     ###game play
     game_state_help_message = (
         "You can press control F for command mode or press control J for arrow mode"
     )
     command_panel_help_message = (
-        "tab to find other functions <> or press control J for arrow mode"
+        "Press tab key to find other functions <> or press control J for arrow mode"
     )
 
     arrow_mode_help_message = "use arrow key to travel the chess board <> use space bar to select the piece to move <> and the square to place <>"
@@ -60,6 +64,9 @@ class Speak_template(Enum):
         "You are playing as black. Please wait for your opponent's move."
     )
     user_white_side_sentense = "You are playing as white. Please make your first move."
+
+    #analysis
+    analysis_help_message = "Press Right Arrow Key for next move. Press Left Arrow Key for previous move. Press Up Arrow Key for the first move. Press E for explanation. Press B to get the best move. Press C to get the current move. Or press tab key to select function from buttons."
 
 
 
@@ -260,7 +267,7 @@ class determinant(Enum):
 
     quit_application_words = ["quit", "exit", "leave", "close", "shutdown"]
 
-class timeControlDeterminant(Enum):
+class timeControlDeterminant_Type(Enum):
     timeControl_1_0_words = dict.fromkeys(["1+0", "1 + 0", "1|0", "1 | 0", "1 min", "1min", "one minute", "1 minute", "1minute", "1 plus 0"], timeControl.timeControl_1_0.value)
     timeControl_1_1_words = dict.fromkeys(["1+1", "1 + 1", "1|1", "1 | 1", "one plus one", "1 plus 1", "one + one"], timeControl.timeControl_1_1.value)
     timeControl_2_1_words = dict.fromkeys(["2+1", "2 + 1", "2|1", "2 | 1", "two plus one", "2 plus 1", "two + one"], timeControl.timeControl_2_1.value)
@@ -269,11 +276,15 @@ class timeControlDeterminant(Enum):
     timeControl_5_0_words = dict.fromkeys(["5+0", "5 + 0", "5|0", "5 | 0", "5 min", "5min", "five minute", "5 minute", "5minute", "5 plus 0"], timeControl.timeControl_5_0.value)
     timeControl_10_0_words = dict.fromkeys(["10+0", "10 + 0", "10|0", "10 | 0", "10 min", "10min", "ten minute", "10 minute", "10minute", "10 plus 0"], timeControl.timeControl_10_0.value)
     timeControl_15_10_words = dict.fromkeys(["15+10", "15 + 10", "15|10", "15 | 10", "fifteen plus ten", "15 plus 10", "fifteen + ten"], timeControl.timeControl_15_10.value)
-    timeControl_30_0_words = dict.fromkeys(["30+0", "30 + 0", "30|0", "30 | 0", "30 min", "30min", "thirty minute", "30 minute", "30minute", "30 plus 0", "default"], timeControl.timeControl_10_0.value)
+    timeControl_30_0_words = dict.fromkeys(["30+0", "30 + 0", "30|0", "30 | 0", "30 min", "30min", "thirty minute", "30 minute", "30minute", "30 plus 0", "default"], timeControl.timeControl_30_0.value)
 
-class keyPressed(Enum):
-    leftArrow = "left"
-    rightArrow = "right"
-    upArrow = "upward"
-    downArrow = "downward"
-    keyB = "B"
+class timeControlDeterminant_Speak(Enum):
+    timeControl_1_0_words = dict.fromkeys(["1 + 0", "one minute", "1 minute", "1 plus 0"], timeControl.timeControl_1_0.value)
+    timeControl_1_1_words = dict.fromkeys(["1 + 1", "one plus one", "1 plus 1"], timeControl.timeControl_1_1.value)
+    timeControl_2_1_words = dict.fromkeys(["2 + 1", "two plus one", "2 plus 1"], timeControl.timeControl_2_1.value)
+    timeControl_3_0_words = dict.fromkeys(["3 + 0", "three minutes", "3 minutes", "3 plus 0"], timeControl.timeControl_3_0.value)
+    timeControl_3_2_words = dict.fromkeys(["3 + 2", "three plus two", "3 plus 2"], timeControl.timeControl_3_2.value)
+    timeControl_5_0_words = dict.fromkeys(["5 + 0", "five minutes", "5 minutes", "5 plus 0"], timeControl.timeControl_5_0.value)
+    timeControl_10_0_words = dict.fromkeys(["10 + 0", "ten minutes", "10 minutes", "10 plus 0"], timeControl.timeControl_10_0.value)
+    timeControl_15_10_words = dict.fromkeys(["15 + 10", "fifteen plus ten", "15 plus 10"], timeControl.timeControl_15_10.value)
+    timeControl_30_0_words = dict.fromkeys(["30 + 0", "thirty minutes", "30 minutes", "30 plus 0", "default"], timeControl.timeControl_30_0.value)

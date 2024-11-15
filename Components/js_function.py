@@ -341,18 +341,18 @@ getReviewComment = """
     getReviewComment();
 """
 
-getBestMove = """
-    function getBestMove(){
+analysis_GetBestMove = """
+    function analysis_GetBestMove(){
         document.querySelector('.perfect').click();
     }
-    getBestMove();
+    analysis_GetBestMove();
 """
 
-getMoveLength = """
-    function getMoveLength(){
+analysis_GetMoveLength = """
+    function analysis_GetMoveLength(){
         return document.querySelectorAll('.main-line-ply').length;
     }
-    getMoveLength();
+    analysis_GetMoveLength();
 """
 
 userLogin = """
@@ -380,4 +380,32 @@ loginSuccess = """
         return false;
     }
     loginSuccess();
+"""
+
+analysis_NextMove = """
+    function analysis_NextMove(){
+        document.querySelector('[aria-label="Next Move"]').click()
+    }
+    analysis_NextMove();
+"""
+
+analysis_PreviousMove = """
+    function analysis_PreviousMove(){
+        document.querySelector('[aria-label="Previous Move"]').click()
+    }
+    analysis_PreviousMove();
+"""
+
+analysis_FirstMove = """
+    function analysis_FirstMove(){
+        document.querySelector('[aria-label="First Move"]').click()
+    }
+    analysis_FirstMove();
+"""    
+
+analysis_LastMove = """
+    function analysis_LastMove(){
+        document.querySelector('[aria-label="Last Move"]').click()
+    }
+    analysis_LastMove();
 """
