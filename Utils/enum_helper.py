@@ -32,8 +32,9 @@ class Speak_template(Enum):
     welcome_sentense = "Welcome to chess bot!! "
     game_intro_sentense = "you can press control O to find the options. <> press control R to repeat last sentence"
     setting_state_help_message = (
-        "Press Control 1 to play with computer. Press Control 2 to play with other online player. Or press tab key to select from buttons"
+        "Press Control + 1 to play with computer. Press Control + 2 to play with other online player. Or press tab key to select from buttons. You can also press Control + S to start record voice input, and press Control + S again to stop. Each voice input can only perform one action. For voice input command, press Control Q to list the available options in current state."
     )
+    setting_state_vinput_help_message = "Say Computer or bot for Computer Mode. Say Online or Player for Online Player Mode."
 
     ###initialization
     initialize_game_sentense = "Initializing game for you"
@@ -42,6 +43,8 @@ class Speak_template(Enum):
     #Select State
     select_computer_help_message = "Press Tab key to select the bot category and choose the bot you want to play with."
     select_online_help_message = "Press Tab key to select the Time Control for Online Game."
+    select_computer_vinput_help_message = "Say the Bot Category to select the Category. Then Say the bot name to select the bot."
+    select_online_vinput_help_message = "Say the time control with format <minute plus increment> to select. For example, say ten plus zero to select 10 minute with 0 second time increment, say fifteen plus ten to select 15 minute with 10 seconds time increment."
 
     ###game play
     game_state_help_message = (
@@ -49,6 +52,9 @@ class Speak_template(Enum):
     )
     command_panel_help_message = (
         "Press tab key to find other functions <> or press control J for arrow mode"
+    )
+    command_panel_vinput_help_message = (
+        "For moving pieces, say the chess move with format <source to destination>. For example, E2 to E4."
     )
 
     arrow_mode_help_message = "use arrow key to travel the chess board <> use space bar to select the piece to move <> and the square to place <>"

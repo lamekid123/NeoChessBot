@@ -168,8 +168,12 @@ puzzle_mode_constructBoard = """
 
 puzzle_mode_GetTitle = """
     function puzzle_mode_GetTitle(){
-        document?.querySelector(".modal-first-time-button")?.getElementsByTagName('button')[0].click()
-        return document.querySelector(".section-heading-title").textContent.split(' ')[0];
+        document?.querySelector(".modal-first-time-button")?.getElementsByTagName('button')[0].click();
+        let title = document?.querySelector(".section-heading-title")?.textContent?.split(' ')[0];
+        if(title == null){
+            title = document.querySelector(".cc-text-speech-bold").textContent.split(' ')[0]
+        }
+        return title;
     }
     puzzle_mode_GetTitle();
 """
@@ -238,6 +242,9 @@ clickTimeControlButton = """
                 document.querySelector('.cc-button-primary').click();
                 if(!login){
                     setTimeout(() => document.querySelector('.authentication-intro-guest').click(), 500);
+                }
+                else{
+                    setTimeout(() => document.querySelector(".fair-play-button").click(), 500);
                 }
             }, 1000)
         }, 500);
