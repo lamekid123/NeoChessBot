@@ -1,3 +1,13 @@
+getColor = """
+    function getColor(){
+        if(document.querySelector('[x="10"][y="99"]').textContent.toLowerCase() == 'a'){
+            return "WHITE";
+        }
+        return "BLACK";
+    }
+    getColor();
+"""
+    
 white_GetOpponentMove = """
     function getOpponentMove(mode) {
         let player_color = "WHITE";
@@ -81,7 +91,10 @@ checkGameEnd = """
 
 getFEN = """
     function getFEN(){
-        let FEN = document.querySelector(".share-menu-tab-pgn-section").getElementsByClassName("ui_v5-input-component")[0]._value;
+        let FEN = document?.getElementById("share-fen")?.value;
+        if(FEN == null){
+            return false;
+        }
         document.querySelector('[aria-label="Close"]').click();
         return FEN;
     }
@@ -96,7 +109,7 @@ checkExistGame = """
             for(let i = 0; i<moveList.length; i++){
                 let white_icon = "";
                 let black_icon = "";
-                let info = moveList[i].textContent.trim().split("    ");
+                let info = moveList[i].textContent.trim().split("   ");
                 if(document?.querySelector('[data-move-list-el]')){
                     info.splice(info.length-1, 1);
                 }
@@ -168,6 +181,7 @@ puzzle_mode_constructBoard = """
 
 puzzle_mode_GetTitle = """
     function puzzle_mode_GetTitle(){
+        document?.querySelector('[aria-label="Close"]')?.click();
         document?.querySelector(".modal-first-time-button")?.getElementsByTagName('button')[0].click();
         let title = document?.querySelector(".section-heading-title")?.textContent?.split(' ')[0];
         if(title == null){
@@ -217,7 +231,7 @@ getCoordinate = """
 ## pix_scale 計返放大嘅比例, 用作計算正確coordinate
 ## top margin 用作移動鼠標到程式內容的左上角(不是視窗)
 ## 解決多mon錯位嘅問題: 搵返目前視窗處於嘅位置, 拎佢嘅left同top value,
-# 將現有嘅coordinate_x減去left, coordinate_x減去top 再乘以倍大比例去獲取移位後嘅coordinate, 最後加返減去嘅top同left將鼠標移去正面嘅monitor
+# 將現有嘅coordinate_x減去left, coordinate_y減去top 再乘以倍大比例去獲取移位後嘅coordinate, 最後加返減去嘅top同left將鼠標移去正面嘅monitor
 
 clickNextPuzzle = """
     function clickNextPuzzle(){
@@ -239,14 +253,14 @@ clickTimeControlButton = """
                 }
             }
             setTimeout(() => {
-                document.querySelector('.cc-button-primary').click();
+                document.querySelector('.create-game-component').querySelector('.cc-button-primary').click();
                 if(!login){
-                    setTimeout(() => document.querySelector('.authentication-intro-guest').click(), 500);
+                    setTimeout(() => document.getElementById("guest-button").click(), 1500);
                 }
                 else{
-                    setTimeout(() => document.querySelector(".fair-play-button").click(), 500);
+                    setTimeout(() => document.querySelector(".fair-play-button").click(), 1000);
                 }
-            }, 1000)
+            }, 1500)
         }, 500);
     }
 """
@@ -254,11 +268,20 @@ clickTimeControlButton = """
 clickShare = """
     function clickShare(){
         document.querySelector('[aria-label="Share"]').click();
-        setTimeout(() => {
-            document.querySelector('.share-menu-tab-selector-tab').click();
-        }, 300);
+        return false;
     }
     clickShare();
+"""
+
+clickPGN = """
+    function clickPGN(){
+        if(document?.querySelector('.share-menu-tab-selector-tab') == null){
+            return false;
+        }
+        document.querySelector('.share-menu-tab-selector-tab').click();
+        return true;
+    }
+    clickPGN();
 """
 
 checkMoveSuccess = """
@@ -328,17 +351,20 @@ getReviewComment = """
                 icon = "";
             }
             let feedback = document.querySelector(".move-feedback-box-move").textContent.trim();
-            if(feedback.includes("=")){
+            if(!/\d/.test(feedback)){
+                feedback = icon + selected.textContent.trim() + " is " + feedback;
+            }
+            else if(feedback.includes("=")){
                 let index = feedback.indexOf("is");
                 let lastSeq = feedback.substring(index, feedback.length);
                 feedback = selected.textContent + lastSeq; 
             }
             else{
-                feedback = icon + feedback;   
+                feedback = icon + feedback;
             }
             let explain = document.querySelector('.analysis-type-component')?.textContent;
             let bestExist = false;
-            if(document.querySelector('.perfect')){
+            if(document.querySelector('.tool-magnifier-star')){
                 bestExist = true;
             }
             return [feedback, explain, bestExist];
@@ -350,7 +376,13 @@ getReviewComment = """
 
 analysis_GetBestMove = """
     function analysis_GetBestMove(){
-        document.querySelector('.perfect').click();
+        let buttons = document.querySelector('.flow-buttons-component').querySelectorAll('button');
+        for(let i = 0; i < buttons.length; i++){
+            if(buttons[i].textContent.trim().toLowerCase() == 'best'){
+                buttons[i].click();
+                break;
+            }
+        }
     }
     analysis_GetBestMove();
 """
@@ -364,17 +396,19 @@ analysis_GetMoveLength = """
 
 userLogin = """
     function userLogin(username, password){
-        let usernameField = document.querySelector('[aria-label="Username or Email"]');
+        let usernameField = document.getElementById('login-username');
         usernameField.value = username;
         usernameField.dispatchEvent(new Event('input', { bubbles: true }));
         usernameField.dispatchEvent(new Event('change', { bubbles: true }));
         
-        let passwordField = document.querySelector('[aria-label="Password"]');
+        let passwordField = document.getElementById('login-password');
         passwordField.value = password;
         passwordField.dispatchEvent(new Event('input', { bubbles: true }));
         passwordField.dispatchEvent(new Event('change', { bubbles: true }));
         
-        document.querySelector('[name="_remember_me"]').click();
+        if(!document.getElementById('_remember_me').checked){
+            document.getElementById('_remember_me').click();
+        }
         setTimeout(document.querySelector('[name="login"]').click(), 500);
     }
 """
@@ -415,4 +449,166 @@ analysis_LastMove = """
         document.querySelector('[aria-label="Last Move"]').click()
     }
     analysis_LastMove();
+"""
+
+getBoard = """
+    function getBoard(){
+        let bottom_number = document.querySelector('[x="0.75"][y="90.75"]').getBoundingClientRect();
+        let left_alphabet = document.querySelector('[x="10"][y="99"]').getBoundingClientRect();
+        let right_alphabet = document.querySelector('[x="22.5"][y="99"]').getBoundingClientRect();
+        let distance = right_alphabet['x'] - left_alphabet['x'];
+        let mid_x = (bottom_number['x'] + left_alphabet['x']) *0.5;
+        let mid_y = (bottom_number['y'] + left_alphabet['y']) *0.5;
+        return [mid_x, mid_y, distance];
+    }
+    getBoard();
+"""
+
+checkLogin = """
+    function checkLogin(){
+        return document.querySelector(".login");
+    }
+    checkLogin();
+"""
+
+getPiecesLocation = """
+    function getPiecesLocation(){
+        let num_to_alphabet = {
+            "1": "a",
+            "2": "b",
+            "3": "c",
+            "4": "d",
+            "5": "e",
+            "6": "f",
+            "7": "g",
+            "8": "h",  
+        }
+        let pieces = document.querySelectorAll(".piece");
+        let white = "";
+        let white_k = "";
+        let white_q = "";
+        let white_r = "";
+        let white_b = "";
+        let white_n = "";
+        let white_p = "";
+        let black = "";
+        let black_k = "";
+        let black_q = "";
+        let black_r = "";
+        let black_b = "";
+        let black_n = "";
+        let black_p = "";
+        for(let i=0; i<pieces.length; i++){
+            let info = pieces[i].getAttribute("class");
+            let location = info.match(/\d+/)[0];
+            let col = num_to_alphabet[location[0]];
+            let row = location[1];
+            info = info.split(" ");
+            let piece_type = info[1];
+            if(/\d+/.test(piece_type)){
+                piece_type = info[2];
+            }
+            console.log(piece_type)
+            switch(piece_type){
+                case "bp":
+                    if(black_p == ""){
+                        black_p = "pawn: " + col + row + ", ";
+                    }
+                    else{
+                        black_p += col + row + ", ";
+                    }
+                    break;
+
+                case "wp":
+                    if(white_p == ""){
+                        white_p = "pawn: " + col + row + ", ";
+                    }
+                    else{
+                        white_p += col + row + ", ";
+                    }
+                    break;
+                    
+                case "bk":
+                    black_k = "king: " + col + row + ", ";
+                    break;
+
+                case "bq":
+                    black_q = "queen: " + col + row + ", ";
+                    break;
+
+                case "bn":
+                    if(black_n == ""){
+                        black_n = "knight: " + col + row + ", ";
+                    }
+                    else{
+                        black_n += col + row + ", ";
+                    }
+                    break;
+                    
+                case "bb":
+                    if(black_b == ""){
+                        black_b = "bishop: " + col + row + ", ";
+                    }
+                    else{
+                        black_b += col + row + ", ";
+                    }
+                    break;
+                    
+                case "br":
+                    if(black_r == ""){
+                        black_r = "rook: " + col + row + ", ";
+                    }
+                    else{
+                        black_r += col + row + ", ";
+                    }
+                    break;
+
+                case "wk":
+                    white_k = "king: " + col + row + ", ";
+                    break;
+
+                case "wq":
+                    white_q = "queen: " + col + row + ", ";
+                    break;
+
+                case "wn":
+                    if(white_n == ""){
+                        white_n = "knight: " + col + row + ", ";
+                    }
+                    else{
+                        white_n += col + row + ", ";
+                    }
+                    break;
+
+                case "wb":
+                    if(white_b == ""){
+                        white_b = "bishop: " + col + row + ", ";
+                    }
+                    else{
+                        white_b += col + row + ", ";
+                    }
+                    break;
+                    
+                case "wr":
+                    if(white_r == ""){
+                        white_r = "rook: " + col + row + ", ";
+                    }
+                    else{
+                        white_r += col + row + ", ";
+                    }
+                    break;
+            }
+        }
+            white = white_k + white_q + white_r + white_b + white_n + white_p;
+            black = black_k + black_q + black_r + black_b + black_n + black_p;
+            return [white, black];
+    }
+    getPiecesLocation();
+"""
+
+retryPuzzle = """
+    function retryPuzzle(){
+        document.querySelector('[aria-label="Retry"]').click();
+    }
+    retryPuzzle();
 """

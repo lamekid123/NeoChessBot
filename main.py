@@ -23,8 +23,7 @@ from PyQt6.QtCore import QUrl, Qt, QTimer, QRect, QThread, pyqtSignal
 from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QIcon
 
 
-import Components.js_function as js_function
-from Components.board_detection_component import detectChessboard, userColor        ## header file
+import Components.js_function as js_function    ## header file
 from Components.piece_move_component import widgetDragDrop, widgetClick, moveLeft, moveRight, moveUp, moveDown, moveTopLeft, moveBottomLeft, moveBottomRight, moveTopRight 
 from Components.chess_validation_component import ChessBoard
 from Components.speak_component import TTSThread
@@ -108,13 +107,14 @@ class LeftWidget(QWidget):
         self.chessWebView.load(QUrl("https://www.chess.com"))
 
         self.chessWebView.setMinimumSize(1000, 550)
+        # self.chessWebView.setFixedSize(1000, 550)
 
         vlayout = QVBoxLayout()
         vlayout.addWidget(self.chessWebView)
         vlayout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(vlayout)
 
-        self.grids = dict()
+        self.grids = [[0 for x in range(8)] for y in range(8)]
 
     # crawl remaining time
     def checkTime(self, callBack):
@@ -142,6 +142,9 @@ class CheckBox(QCheckBox):
         super(CheckBox, self).keyPressEvent(event)
 
 class ChatbotWindow(QMainWindow):
+
+    action_signal = pyqtSignal(str)
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Simple Chatbot")
@@ -208,9 +211,32 @@ class ChatbotWindow(QMainWindow):
             "hello": "Hi there!",
             "how are you": "I'm doing well, thank you for asking!",
             "goodbye": "Goodbye! Have a great day!",
-            "how to use": "You can navigate different options by pressing Tab key or Arrows. There are also some shortcuts availble. You can ask me about the shortcuts if you are interested.",
-            "shortcut": "Ctrl 1 for computer mode, Ctrl 2 for PVP"
+            "how to use": "You can navigate different options by pressing Tab key or Arrows. When entered in a chess game, there are 3 input mode. Press Ctrl F for the default keyboard base interface. <> Ctrl J for Arrow mode that allow you to navagate through the board and move pieces by choosing target and destination grid using space bar. <> Ctrl S to activate voice input and press Ctrl S again to finish your input <>  There are also some shortcuts availble. You can ask me about the shortcuts if you are interested.",
+            "shortcut": "Ctrl 1 for computer mode, Ctrl 2 for online player mode. Ctrl 3 for puzzle mode."
         }
+        action = {
+            "play with computer": "computer",
+            "play with player": "online",
+        }
+
+        for item in timeControlDeterminant_Type:
+            for words in item.value:
+                if (words in message):
+                    print(f"Time Control: {item.value[words]}")
+                    self.action_signal.emit(item.value[words])
+                    self.hide()
+                    return f"Starting a online player Game"
+
+        for key in action:
+            if key in message:
+                match action[key]:
+                    case "computer":
+                        self.action_signal.emit("computer")
+                    case "online":
+                        self.action_signal.emit("online")
+                self.hide()
+                return "Starting Game..."
+
 
         # Check for matching keywords
         for key in responses:
@@ -315,6 +341,14 @@ class RightWidget(QWidget):
 
         #Puzzle mode components
         self.puzzleModeButton = QPushButton("Puzzle Mode")
+        self.nextPuzzleButton = QPushButton("Next Puzzle")
+        self.retryPuzzleButton = QPushButton("Retry Puzzle")
+
+        #Game end components
+        self.newgameButton = QPushButton("New Game")
+        self.gamereviewButton = QPushButton("Game Review")
+        self.returnToHomePageButton = QPushButton("Return to Home Page")
+        self.returnToHomePageButton.setAccessibleDescription("Press to exit current mode")
 
         #Analysis mode components
         self.analysisCurrentMove = QLabel()
@@ -332,15 +366,19 @@ class RightWidget(QWidget):
         self.analysis_NextMove_Button = QPushButton("Next Move")
         self.analysis_PreviousMove_Button = QPushButton("Previous Move")
         self.analysis_FirstMove_Button = QPushButton("First Move")
-        self.analysis_Explanation_Button = QPushButton("Explanation")
+        # self.analysis_Explanation_Button = QPushButton("Explanation")
         self.analysis_BestMove_Button = QPushButton("Best Move")
-        self.analysis_CurrentMove_Button = QPushButton("Current Move")        
+        # self.analysis_CurrentMove_Button = QPushButton("Current Move")        
         # self.analysis_LastMove_Button = QPushButton("Last Move")
 
-        self.returnToHomePageButton = QPushButton("Return to Home Page")
-        self.returnToHomePageButton.setAccessibleDescription("Press to exit current mode")
+        self.moveList = QLabel()
+        self.moveList.setText("Move List:\n")
 
-        self.returnToHomePageButton.setAutoDefault(True)
+        self.whitePieces = QLabel()
+        self.whitePieces.setText("White pieces: ")
+
+        self.blackPieces = QLabel()
+        self.blackPieces.setText("Black pieces: ")
 
         self.colorBox = QLabel()
         self.colorBox.setText("Assigned Color: ")
@@ -377,6 +415,10 @@ class RightWidget(QWidget):
         self.commandPanel.setFont(font)
         self.check_position.setFont(font)
 
+        smallfont = QFont()
+        smallfont.setPointSize(7)
+        self.moveList.setFont(smallfont)
+
         self.login_menu = []
         self.login_menu.append(self.loginAccount_Input)
         self.login_menu.append(self.loginPassword_Input)
@@ -388,7 +430,10 @@ class RightWidget(QWidget):
         self.setting_menu.append(self.puzzleModeButton)
 
         self.play_menu = []
+        self.play_menu.append(self.whitePieces)
+        self.play_menu.append(self.blackPieces)
         self.play_menu.append(self.colorBox)
+        self.play_menu.append(self.moveList)
         self.play_menu.append(self.opponentBox)
         self.play_menu.append(self.resign)
         self.play_menu.append(self.check_time)
@@ -407,6 +452,15 @@ class RightWidget(QWidget):
         self.online_mode_select_menu.append(self.playWithOther_Rapid_15_10_Button)
         self.online_mode_select_menu.append(self.playWithOther_Rapid_30_0_Button)
 
+        self.game_end_menu = []
+        self.game_end_menu.append(self.newgameButton)
+        self.game_end_menu.append(self.gamereviewButton)
+        self.game_end_menu.append(self.returnToHomePageButton)
+
+        self.puzzle_end_menu = []
+        self.puzzle_end_menu.append(self.nextPuzzleButton)
+        self.puzzle_end_menu.append(self.retryPuzzleButton)
+
         self.analysis_menu = []
         self.analysis_menu.append(self.analysisCurrentMove)
         self.analysis_menu.append(self.analysisComment)
@@ -415,10 +469,9 @@ class RightWidget(QWidget):
         self.analysis_menu.append(self.analysis_NextMove_Button)
         self.analysis_menu.append(self.analysis_FirstMove_Button)
         # self.analysis_menu.append(self.analysis_LastMove_Button)
-        self.analysis_menu.append(self.analysis_Explanation_Button)
+        # self.analysis_menu.append(self.analysis_Explanation_Button)
         self.analysis_menu.append(self.analysis_BestMove_Button)
-        self.analysis_menu.append(self.analysis_CurrentMove_Button)
-        self.analysis_menu.append(self.returnToHomePageButton)
+        # self.analysis_menu.append(self.analysis_CurrentMove_Button)
 
         #analysis control button
         self.analysisButton = []
@@ -426,10 +479,9 @@ class RightWidget(QWidget):
         self.analysisButton.append(self.analysis_NextMove_Button)
         self.analysisButton.append(self.analysis_FirstMove_Button)
         # self.analysisButton.append(self.analysis_LastMove_Button)
-        self.analysisButton.append(self.analysis_Explanation_Button)
+        # self.analysisButton.append(self.analysis_Explanation_Button)
         self.analysisButton.append(self.analysis_BestMove_Button)
-        self.analysisButton.append(self.analysis_CurrentMove_Button)
-        self.analysis_menu.append(self.returnToHomePageButton)
+        # self.analysisButton.append(self.analysis_CurrentMove_Button)
         for item in self.analysisButton:
             item.setAutoDefault(True)
 
@@ -445,6 +497,8 @@ class RightWidget(QWidget):
             self.setting_layout.addWidget(item)
             item.hide()
 
+        self.login_menu.append(self.returnToHomePageButton)
+
         for item in self.play_menu:
             self.setting_layout.addWidget(item)
             item.hide()
@@ -453,10 +507,26 @@ class RightWidget(QWidget):
             self.setting_layout.addWidget(item)
             item.setAutoDefault(True)
             item.hide()
+        
+        self.online_mode_select_menu.append(self.returnToHomePageButton)
+
+        for item in self.game_end_menu:
+            self.setting_layout.addWidget(item)
+            item.setAutoDefault(True)
+            item.hide()
+
+        for item in self.puzzle_end_menu:
+            self.setting_layout.addWidget(item)
+            item.setAutoDefault(True)
+            item.hide()
+
+        self.puzzle_end_menu.append(self.returnToHomePageButton)
 
         for item in self.analysis_menu:
             self.setting_layout.addWidget(item)
             item.hide()
+
+        self.analysis_menu.append(self.returnToHomePageButton)
 
         self.setLayout(self.setting_layout)
 
@@ -518,6 +588,7 @@ class MainWindow(QMainWindow):
     def checkLogined(self):
         def callback(x):
             self.userLoginName = x
+            print(f"Login User: {self.userLoginName}")
             if(self.userLoginName != None):
                 self.rightWidget.setting_layout.removeWidget(self.rightWidget.loginButton)
                 self.rightWidget.setting_menu.remove(self.rightWidget.loginButton)
@@ -547,13 +618,17 @@ class MainWindow(QMainWindow):
 
         username = self.rightWidget.loginAccount_Input.text()
         password = self.rightWidget.loginPassword_Input.text()
+        print(f"username: {username}")
+        print(f"password: {password}")
         self.rightWidget.loginAccount_Input.clear()
         self.rightWidget.loginPassword_Input.clear()
-        if(username == None or password == None):
+        if(username == "" or password == ""):
             print("Invalid Input")
+            speak("Invalid Input")
             return
         self.leftWidget.chessWebView.page().runJavaScript(js_function.userLogin + f"userLogin('{username}', '{password}')")
-        QTimer.singleShot(5000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.loginSuccess, checkLogin))
+        speak("trying to login")
+        QTimer.singleShot(3000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.loginSuccess, checkLogin))
 
 
 
@@ -562,7 +637,7 @@ class MainWindow(QMainWindow):
         print("change status", status)
         match status:
             case Bot_flow_status.login_status:
-                self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/login_and_go?returnUrl=https://www.chess.com/"))
+                self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/login"))
                 self.main_flow_status = Bot_flow_status.login_status
                 self.currentFocus = len(self.rightWidget.login_menu)
                 for item in self.rightWidget.setting_menu:
@@ -576,27 +651,34 @@ class MainWindow(QMainWindow):
                 self.check_game_end_timer.stop()
                 self.getScoreTimer.stop()
                 self.main_flow_status = Bot_flow_status.setting_status
+                self.game_play_mode = None
                 self.input_mode = Input_mode.command_mode
                 self.rightWidget.commandPanel.setAccessibleDescription(
                     "type the letter 'C' for computer mode, type the letter 'O' for online players mode "
                 )
                 self.alphabet = ["A", "B", "C", "D", "E", "F", "G", "H"]
                 self.number = ["1", "2", "3", "4", "5", "6", "7", "8"]
+                self.moveList_line = 1
+                self.moveList_element = 0
+                self.moveListString = ""
                 self.chessBoard = None
+                self.change_game_mode(None)
                 self.rightWidget.colorBox.setText("Assigned Color: ")
                 self.userColor = None
                 self.opponentColor = None
                 self.rightWidget.right_layout = self.rightWidget.setting_layout
                 self.rightWidget.opponentBox.setText("Opponent move: \n")
-                for label in self.leftWidget.grids.values():
-                    label.deleteLater()
+                for i in range(8):
+                    for j in range(8):
+                        if(isinstance(self.leftWidget.grids[i][j], QLabel)):
+                            self.leftWidget.grids[i][j].deleteLater()
                 for item in range(self.rightWidget.setting_layout.count()):
                     self.rightWidget.setting_layout.itemAt(item).widget().hide()
                 for item in self.rightWidget.setting_menu:
                     item.show()
                 self.rightWidget.playWithComputerButton.setFocus()
                 self.currentFocus = len(self.rightWidget.setting_menu)
-                self.leftWidget.grids = dict()
+                # self.leftWidget.grids = dict()
                 return
                 
             case Bot_flow_status.select_status:
@@ -626,15 +708,14 @@ class MainWindow(QMainWindow):
                 self.check_game_end_timer.stop()
                 self.getScoreTimer.stop()
                 self.input_mode = Input_mode.command_mode
-                for item in self.rightWidget.setting_menu:
-                    item.hide()
+                for item in range(self.rightWidget.setting_layout.count()):
+                    self.rightWidget.setting_layout.itemAt(item).widget().hide()
                 for item in self.rightWidget.play_menu:
                     item.show()
                 self.chessBoard = None
                 self.userColor = None
-                self.moveList = []
                 self.opponentColor = None
-                self.leftWidget.grids = dict()
+                # self.leftWidget.grids = dict()
                 return
             
             case Bot_flow_status.game_play_status:
@@ -644,12 +725,43 @@ class MainWindow(QMainWindow):
                 self.main_flow_status = Bot_flow_status.game_play_status
                 return
             
+            case Bot_flow_status.game_end_status:
+                self.moveList_line = 1
+                self.moveList_element = 0
+                self.arrow_mode_switch(False)
+                self.input_mode = Input_mode.command_mode
+                self.getOpponentMoveTimer.stop()
+                self.check_game_end_timer.stop()
+                self.getScoreTimer.stop()
+                self.rightWidget.whitePieces.setText("White pieces: ")
+                self.rightWidget.blackPieces.setText("Black pieces: ")
+                self.input_mode = Input_mode.command_mode
+                self.chessBoard = None
+                for item in range(self.rightWidget.setting_layout.count()):
+                    self.rightWidget.setting_layout.itemAt(item).widget().hide()
+                for item in self.rightWidget.game_end_menu:
+                    item.show()
+                self.rightWidget.newgameButton.setFocus()
+                self.currentFocus = len(self.rightWidget.game_end_menu)
+                self.main_flow_status = Bot_flow_status.game_end_status
+
+            case Bot_flow_status.puzzle_end_status:
+                self.arrow_mode_switch(False)
+                self.input_mode = Input_mode.command_mode
+                self.main_flow_status = Bot_flow_status.puzzle_end_status
+                for item in range(self.rightWidget.setting_layout.count()):
+                    self.rightWidget.setting_layout.itemAt(item).widget().hide()
+                for item in self.rightWidget.puzzle_end_menu:
+                    item.show()
+                self.currentFocus = 0
+                self.rightWidget.nextPuzzleButton.setFocus()
+            
     def change_game_mode(self, mode):
         match mode:
             case None:
                 self.game_play_mode = None
             case Game_play_mode.analysis_mode:
-                self.currentFocus = len(self.rightWidget.analysisButton)
+                self.currentFocus = len(self.rightWidget.analysis_menu)
                 self.game_play_mode = Game_play_mode.analysis_mode
                 for item in range(self.rightWidget.setting_layout.count()):
                     self.rightWidget.setting_layout.itemAt(item).widget().hide()
@@ -674,7 +786,7 @@ class MainWindow(QMainWindow):
             "computer engine mode <>" + Speak_template.initialize_game_sentense.value,
             True,
         )
-        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(2000, self.checkExistGame))
+        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(4000, self.checkExistGame))
 
         self.leftWidget.chessWebView.load(
             QUrl("https://www.chess.com/play/computer/komodo1")
@@ -683,8 +795,8 @@ class MainWindow(QMainWindow):
     def default_bot(self):
         def clickNCapture():
             if not self.main_flow_status == Bot_flow_status.game_play_status:
-                self.initBoard()
                 self.getColor()
+                self.initBoard()
                 self.getBoard()
         
         if self.userLoginName != None:
@@ -719,7 +831,7 @@ class MainWindow(QMainWindow):
             True,
         )
         self.game_play_mode = Game_play_mode.online_mode
-        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(1500, self.checkExistGame))
+        self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(3000, self.checkExistGame))
         self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/play/online"))
 
     def selectPanelHandler(self):
@@ -738,14 +850,21 @@ class MainWindow(QMainWindow):
                         self.leftWidget.checkTime(test)
                 else:
                     print("clocks detected :", clocks)
-                    self.initBoard()
-                    self.getColor()
-                    self.getBoard()
+                    QTimer.singleShot(2000, board)
+                    
             self.leftWidget.checkTime(test)
         
+        def board():
+            self.getColor()
+            self.initBoard()
+            self.getBoard()
+
         print(f"timeControl = {timeControl}")
+        self.timeControl = timeControl
+        
         for item in self.rightWidget.online_mode_select_menu:
             item.hide()
+
         for item in self.rightWidget.play_menu:
             item.show()
         if self.userLoginName != None:
@@ -759,75 +878,115 @@ class MainWindow(QMainWindow):
         def callback(moveList):
             print(f"movemovmeomvomeovmo = {moveList}")
             if(moveList):
-                def getResult(x):
-                    self.FenNotation = x
-                    self.getBoard(self.FenNotation)
-                    self.change_main_flow_status(Bot_flow_status.game_play_status)
-                    print(f"self.FenNotation = {self.FenNotation}")
+                # def callback1(finished):
+                #     if(not finished):
+                #         print("HELLO")
+                #         QTimer.singleShot(300, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.clickPGN, callback1))
+                #     else:
+                #        QTimer.singleShot(300, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.getFEN, getResult))
+
+                # def getResult(FEN):
+                #     if(FEN == None):
+                #         QTimer.singleShot(300, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.getFEN, getResult))
+                #     else:
+                #         self.FenNotation = FEN
+                #         self.getBoard(self.FenNotation)
+                #         self.change_main_flow_status(Bot_flow_status.game_play_status)
+                #         print(f"self.FenNotation = {self.FenNotation}")
 
                 self.change_main_flow_status(Bot_flow_status.board_init_status)
-                self.initBoard()
                 self.getColor()
-                self.leftWidget.chessWebView.page().runJavaScript(js_function.clickShare)
-                QTimer.singleShot(500, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.getFEN, getResult))
+                self.initBoard()
+                # if(self.game_play_mode == Game_play_mode.computer_mode):
+                #     self.leftWidget.chessWebView.page().runJavaScript(js_function.clickShare, callback1)
+                # else:
                 print("reconstructing the board")
+                self.getBoard()
 
                 for move in moveList:
-                    self.moveList.append(move)
-           
-                print(f"movelist = {self.moveList}")
+                    print(self.moveList_element)
+                    if (self.moveList_element % 2 == 0):
+                        self.moveListString += str(self.moveList_line) + ". " + self.chessBoard.board_object.parse_san(move).uci() + ", "
+                    else:
+                        self.moveListString += self.chessBoard.board_object.parse_san(move).uci() + ", "
+                        self.moveList_line += 1
+                    if(self.moveList_element % 10 == 0 and self.moveList_element != 0):
+                        self.moveListString += "\n"
+                    self.moveList_element += 1
+                    self.chessBoard.board_object.push_san(move)
+                self.rightWidget.moveList.setText("Move List:\n" + self.moveListString)
+        
+                print(self.chessBoard.board_object)
                 self.previous_game_exist = True
-                turn = "WHITE" if(len(self.moveList)%2==0) else "BLACK"
+                turn = "WHITE" if(self.moveList_element %2==0) else "BLACK"
+                print(turn)
                 self.game_flow_status = Game_flow_status.user_turn if(turn==self.userColor) else Game_flow_status.opponent_turn
-                print("Existing Game Founded")                      
+                print("Existing Game Founded")
+                self.change_main_flow_status(Bot_flow_status.game_play_status)      
                 return
 
             else:
                 print("no existing board")
                 self.change_main_flow_status(Bot_flow_status.select_status)
 
+
         self.leftWidget.chessWebView.loadFinished.disconnect()
         self.leftWidget.chessWebView.page().runJavaScript(js_function.checkExistGame, callback)
+
+    def getPiecesLocation(self, location):
+        self.rightWidget.whitePieces.setText(f"White pieces: " + location[0])
+        self.rightWidget.blackPieces.setText(f"Black pieces: " + location[1])
+
 
 ## Puzzle Mode Start:
 
     def puzzleModeHandler(self):
-        self.game_play_mode = Game_play_mode.puzzle_mode
+        if(self.game_flow_status == Bot_flow_status.game_play_status):
+            return
         speak(Speak_template.initialize_game_sentense.value, True)
         self.main_flow_status = self.change_main_flow_status(Bot_flow_status.board_init_status)
         self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/puzzles/rated"))
         self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(4000, self.puzzle_mode_InitBoard))
 
     def puzzle_mode_InitBoard(self):
+        self.getOpponentMoveTimer.stop()
+        self.rightWidget.resign.hide()
+        self.rightWidget.check_time.hide()
+        self.rightWidget.moveList.hide()
+        self.count = 0
         self.puzzle_mode_GetTitle()
-        self.puzzle_mode_ConstructBoard()
 
     def puzzle_mode_GetTitle(self):
         def callback(title):
-            print(title)
             if(self.userColor == None):
                 match title:
                     case "White":
+                        self.row, self.col = 0, 0
                         self.userColor = title.upper()
-                        speak("You are playing as white.")
                         self.opponentColor = "BLACK"
+                        self.currentPos = 'a1'
                         print(f"User: {self.userColor}, Oppoenent: {self.opponentColor}")
                     case "Black":
+                        self.row, self.col = 7, 7
                         self.userColor = title.upper()
                         speak("You are playing as black.")
                         self.opponentColor = "WHITE"
+                        self.currentPos = 'h8'
                         print(f"User: {self.userColor}, Oppoenent: {self.opponentColor}")
+                
+                self.rightWidget.colorBox.setText("Assigned Color: " + self.userColor)
+                self.puzzle_mode_ConstructBoard()
             else:
                 match title:
                     case "Correct" | "Solved":
                         print("Correct")
-                        self.userColor = None
-                        self.game_flow_status = self.change_main_flow_status(Bot_flow_status.board_init_status)
-                        self.clickNextPuzzle()
+                        speak("Correct. Please select next action.")
+                        self.game_flow_status = self.change_main_flow_status(Bot_flow_status.puzzle_end_status)
                     #button click next
                     case "Incorrect":
                         print("Incorrect, puzzle run ended")
-                        self.change_main_flow_status(Bot_flow_status.setting_status)
+                        speak("Incorrect, puzzle run ended")
+                        self.change_main_flow_status(Bot_flow_status.puzzle_end_status)
                     case _:
                         # self.puzzle_getOppMove_sgn.emit()
                         self.puzzle_mode_GetMove()
@@ -838,12 +997,18 @@ class MainWindow(QMainWindow):
         def callback(board):
             self.FenNotation = ""
             self.boardDescription = []
+            self.whiteLoc = []
+            self.blackLoc = []
             for row in reversed(range(8)):
                 count = 0
                 for column in range(8):
                     if(board[row][column]!=0):
-                        alphabet_column = list(CHESSBOARD_LOCATION_CONVERSION.keys())[list(CHESSBOARD_LOCATION_CONVERSION.values()).index(str(column+1))]
-                        piece_loc = PIECES_SHORTFORM_CONVERTER[board[row][column]] + " on " + alphabet_column + str(row+1)
+                        alphabet_column = list(CHESSBOARD_LOCATION_CONVERSION.keys())[list(CHESSBOARD_LOCATION_CONVERSION.values()).index(str(column+1))]  #find the alphabet form column
+                        piece_loc = PIECES_SHORTFORM_CONVERTER[board[row][column]] + ": " + alphabet_column + str(row+1)
+                        if(board[row][column] in ['Q', 'N', 'R', 'B', 'P', 'K']):
+                            self.whiteLoc.append(piece_loc)
+                        else:
+                            self.blackLoc.append(piece_loc)
                         self.boardDescription.append(piece_loc)
                         if(count!=0):
                             self.FenNotation += str(count) + board[row][column]
@@ -875,11 +1040,17 @@ class MainWindow(QMainWindow):
                         self.FenNotation += "q"
             print(self.FenNotation)
             print(self.boardDescription)
+            print(self.whiteLoc)
+            print(self.blackLoc)
+            self.rightWidget.commandPanel.setFocus()
+            self.currentFocus = len(self.rightWidget.play_menu)
+            self.main_flow_status = Bot_flow_status.game_play_status
+            self.game_play_mode = Game_play_mode.puzzle_mode
             self.chessBoard = ChessBoard(self.FenNotation)
-            self.change_main_flow_status(Bot_flow_status.game_play_status)
             self.game_flow_status = Game_flow_status.opponent_turn
             self.puzzle_mode_GetTitle()
 
+        self.initBoard()
         self.leftWidget.chessWebView.page().runJavaScript(js_function.puzzle_mode_constructBoard, callback)
 
     def puzzle_mode_GetMove(self):
@@ -889,101 +1060,220 @@ class MainWindow(QMainWindow):
             pos2 = uci_move[2] + uci_move[3]
             pos1_piece = self.chessBoard.check_grid(pos1)
             print(f'pos1_piece = {pos1_piece}')
-            if(pos1_piece==None):
-                dest = pos2
-                src = pos1
+            print(f"count = {self.count}")
+            if(self.count == 0):
+                if(pos1_piece == None):
+                    dest = pos2
+                    src = pos1
+                else:
+                    dest = pos1
+                    src = pos2
             else:
-                dest = pos1
-                src = pos2
+                if(pos1_piece == None):
+                    dest = pos1
+                    src = pos2
+                else:
+                    dest = pos2
+                    src = pos1
             if(self.game_flow_status == Game_flow_status.opponent_turn):
-                print(f"Opponent Move {src} to {dest}")
-                speak(f"Opponent Move {src} to {dest}")
-                # self.chessBoard.moveWithValidate(uci_move)
-                self.lastmove = src + dest
+                print(f"Opponent Last Move: {src} to {dest}")
+                speak(f"Opponent Last Move: {src} to {dest}")
+                if(self.count != 0):
+                    self.chessBoard.moveWithValidate(src + dest)
+                    print(self.chessBoard.board_object)
+                self.count += 1
+                self.rightWidget.opponentBox.setText(f"Opponent Last Move: {src} to {dest}")
+                if(self.count == 1):
+                    if self.userColor == "WHITE":
+                        speak("You are playing as white\n" + self.rightWidget.whitePieces.text() + self.rightWidget.blackPieces.text() + self.rightWidget.opponentBox.text())
+                    else:
+                        speak("You are playing as black\n" + self.rightWidget.whitePieces.text() + self.rightWidget.blackPieces.text() + self.rightWidget.opponentBox.text())
                 self.game_flow_status = Game_flow_status.user_turn
             else:
                 print("no update move")
                 return
+            
+            self.leftWidget.chessWebView.page().runJavaScript(js_function.getPiecesLocation, self.getPiecesLocation)
 
+        if self.input_mode == Input_mode.arrow_mode:
+            self.all_grids_switch(True)
         self.leftWidget.chessWebView.page().runJavaScript(js_function.puzzle_mode_GetOpponentMove, callback)
 
     def puzzle_movePiece(self, move):
-        def checkSuccess(success):
-            if(success):
-                print("Move successfully")
-                self.game_flow_status = Game_flow_status.opponent_turn
-            else:
-                self.chessBoard.board_object.pop()
-                print("Move not success, please do not move your mouse while moving pieces.")
+        # def checkSuccess(success):
+        #     if(success):
+        #         print("Move successfully")
+        #         self.game_flow_status = Game_flow_status.opponent_turn
+        #     else:
+        #         self.chessBoard.board_object.pop()
+        #         print("Move not success, please do not move your mouse while moving pieces.")
 
-        def callback(pos):
-            print(pos)
-            x = pos[0]
-            y = pos[1]
-            interval = pos[2]
-            if self.userColor=="WHITE":
-                if(dest[0]>src[0] and dest[1]==src[1]):    
-                    moveRight(x, y, x_scale, interval)
-                elif(dest[0]<src[0] and dest[1]==src[1]):
-                    moveLeft(x, y, x_scale, interval)
-                elif(dest[0]==src[0] and dest[1]>src[1]):
-                    moveUp(x, y, y_scale, interval)
-                elif(dest[0]==src[0] and dest[1]<src[1]):
-                    moveDown(x, y, y_scale, interval)
-                elif(dest[0]>src[0] and dest[1]>src[1]):
-                    moveTopRight(x, y, x_scale, y_scale, interval)
-                elif(dest[0]>src[0] and dest[1]<src[1]):
-                    moveBottomRight(x, y, x_scale, y_scale, interval)
-                elif(dest[0]<src[0] and dest[1]>src[1]):
-                    moveTopLeft(x, y, x_scale, y_scale, interval)
-                elif(dest[0]<src[0] and dest[1]<src[1]):
-                    moveBottomLeft(x, y, x_scale, y_scale, interval)
-            else:
-                if(dest[0]<src[0] and dest[1]==src[1]):    
-                    moveRight(x, y, x_scale, interval)
-                elif(dest[0]>src[0] and dest[1]==src[1]):
-                    moveLeft(x, y, x_scale, interval)
-                elif(dest[0]==src[0] and dest[1]<src[1]):
-                    moveUp(x, y, y_scale, interval)
-                elif(dest[0]==src[0] and dest[1]>src[1]):
-                    moveDown(x, y, y_scale, interval)
-                elif(dest[0]<src[0] and dest[1]<src[1]):
-                    moveTopRight(x, y, x_scale, y_scale, interval)
-                elif(dest[0]<src[0] and dest[1]>src[1]):
-                    moveBottomRight(x, y, x_scale, y_scale, interval)
-                elif(dest[0]>src[0] and dest[1]<src[1]):
-                    moveTopLeft(x, y, x_scale, y_scale, interval)
-                elif(dest[0]>src[0] and dest[1]>src[1]):
-                    moveBottomLeft(x, y, x_scale, y_scale, interval)
-
-            QTimer.singleShot(10, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.checkMoveSuccess + f"checkMoveSuccess({loc})", checkSuccess))
-            QTimer.singleShot(1000, self.focus_back)
+        # def callback(pos):
+        #     print(pos)
+        #     x = pos[0]
+        #     y = pos[1]
+        #     interval = pos[2]
+        #     if self.userColor=="WHITE":
+        #         if(dest[0]>src[0] and dest[1]==src[1]):    
+        #             moveRight(x, y, x_scale, interval)
+        #         elif(dest[0]<src[0] and dest[1]==src[1]):
+        #             moveLeft(x, y, x_scale, interval)
+        #         elif(dest[0]==src[0] and dest[1]>src[1]):
+        #             moveUp(x, y, y_scale, interval)
+        #         elif(dest[0]==src[0] and dest[1]<src[1]):
+        #             moveDown(x, y, y_scale, interval)
+        #         elif(dest[0]>src[0] and dest[1]>src[1]):
+        #             moveTopRight(x, y, x_scale, y_scale, interval)
+        #         elif(dest[0]>src[0] and dest[1]<src[1]):
+        #             moveBottomRight(x, y, x_scale, y_scale, interval)
+        #         elif(dest[0]<src[0] and dest[1]>src[1]):
+        #             moveTopLeft(x, y, x_scale, y_scale, interval)
+        #         elif(dest[0]<src[0] and dest[1]<src[1]):
+        #             moveBottomLeft(x, y, x_scale, y_scale, interval)
+        #     else:
+        #         if(dest[0]<src[0] and dest[1]==src[1]):    
+        #             moveRight(x, y, x_scale, interval)
+        #         elif(dest[0]>src[0] and dest[1]==src[1]):
+        #             moveLeft(x, y, x_scale, interval)
+        #         elif(dest[0]==src[0] and dest[1]<src[1]):
+        #             moveUp(x, y, y_scale, interval)
+        #         elif(dest[0]==src[0] and dest[1]>src[1]):
+        #             moveDown(x, y, y_scale, interval)
+        #         elif(dest[0]<src[0] and dest[1]<src[1]):
+        #             moveTopRight(x, y, x_scale, y_scale, interval)
+        #         elif(dest[0]<src[0] and dest[1]>src[1]):
+        #             moveBottomRight(x, y, x_scale, y_scale, interval)
+        #         elif(dest[0]>src[0] and dest[1]<src[1]):
+        #             moveTopLeft(x, y, x_scale, y_scale, interval)
+        #         elif(dest[0]>src[0] and dest[1]>src[1]):
+        #             moveBottomLeft(x, y, x_scale, y_scale, interval)
+            # QTimer.singleShot(1000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.checkMoveSuccess + f"checkMoveSuccess({loc})", checkSuccess))
                 
 
+        # movePair = self.chessBoard.moveWithValidate(move)
+        # if(movePair == "Illegal move" or movePair == "Invalid move"):
+        #     print(movePair)
+        #     return
+        # uci_string = ""
+        # screen = self.screen().geometry()
+        # left = screen.left()
+        # top = screen.top()
+        # print(screen)
+        # if(len(movePair)==2):
+        #     uci_string = movePair[0]
+        # if(len(uci_string)==4):
+        #     src = uci_string[:2].lower()
+        #     dest = uci_string[2:4].lower()
+        # loc = CHESSBOARD_LOCATION_CONVERSION[src[0]] + src[1]
+        # x_scale = abs(ord(dest[0])-ord(src[0]))
+        # y_scale = abs(int(dest[1])-int(src[1]))
+        # self.leftWidget.chessWebView.page().runJavaScript(js_function.getCoordinate + f"getCoordinate({loc}, {left}, {top})", callback)
         movePair = self.chessBoard.moveWithValidate(move)
-        if(movePair == "Illegal move" or movePair == "Invalid move"):
-            print(movePair)
-            return
+        print(self.chessBoard.board_object)
+        san_string = ""
         uci_string = ""
-        screen = self.screen().geometry()
-        left = screen.left()
-        top = screen.top()
-        if(len(movePair)==2):
+        human_string = ""
+        if len(movePair) == 2:
             uci_string = movePair[0]
-        if(len(uci_string)==4):
-            src = uci_string[:2].lower()
-            dest = uci_string[2:4].lower()
-        loc = CHESSBOARD_LOCATION_CONVERSION[src[0]] + src[1]
-        x_scale = abs(ord(dest[0])-ord(src[0]))
-        y_scale = abs(int(dest[1])-int(src[1]))
-        self.leftWidget.chessWebView.page().runJavaScript(js_function.getCoordinate + f"getCoordinate({loc}, {left}, {top})", callback)
+            san_string = movePair[1]
+            human_string = self.move_to_human_form(
+                self.userColor, uci_string, san_string
+            )
+
+            # movePair = movePair[0]
+
+        if len(uci_string) == 5:
+
+            target_col = int(CHESSBOARD_LOCATION_CONVERSION[uci_string[0].lower()]) - 1 
+            target_row = int(uci_string[1]) - 1
+            dest_col = int(CHESSBOARD_LOCATION_CONVERSION[uci_string[2].lower()]) - 1   #index
+            dest_row = int(uci_string[3]) - 1
+            dest = uci_string[2:4]
+            print(f"dest_row: {dest_row}, dest_col: {dest_col}")
+            promoteTo = uci_string[4].lower()
+            promote_index = list(PIECE_TYPE_CONVERSION).index(promoteTo)
+
+            print(f"promote_index: {promote_index}")
+
+            # dlg = confirmMoveDialog("pawn", dest, promote=promoteTo)
+            dlg = confirmDialog(human_string)
+            if dlg.exec():
+                self.all_grids_switch(False)
+                targetWidget = self.leftWidget.grids[target_col][target_row]
+                destWidget = self.leftWidget.grids[dest_col][dest_row]
+                if widgetDragDrop(targetWidget, destWidget):
+                    match self.userColor:
+                        case "BLACK":
+                            promoteRow = dest_row + promote_index
+                        case "WHITE":
+                            promoteRow =  dest_row - promote_index
+                    print(f"dest_col: {dest_col}, promoteRow: {promoteRow}")
+                    promoteWidget = self.leftWidget.grids[dest_col][promoteRow]
+                    if widgetClick(promoteWidget):
+                        self.rightWidget.commandPanel.clear()
+                        self.game_flow_status = Game_flow_status.opponent_turn
+                        QTimer.singleShot(500, self.focus_back)
+            else:
+                self.chessBoard.board_object.pop()
+                self.rightWidget.commandPanel.clear()
+                print("Cancel!")
+
+        elif len(uci_string) == 4:
+
+            target_col = int(CHESSBOARD_LOCATION_CONVERSION[uci_string[0].lower()]) - 1
+            target_row = int(uci_string[1]) - 1
+            dest_col = int(CHESSBOARD_LOCATION_CONVERSION[uci_string[2].lower()]) - 1
+            dest_row = int(uci_string[3]) - 1
+            dest = uci_string[2:4]
+            target_type = PIECE_TYPE_CONVERSION.get(
+                self.chessBoard.check_grid(dest).__str__().lower()
+            )
+            # dlg = confirmMoveDialog(target_type, dest)
+            dlg = confirmDialog(human_string)
+            if dlg.exec():
+                self.all_grids_switch(False)
+                # QTimer.singleShot(3000, partial(self.clickStart,input))
+                # print(self.chessBoard.board_object)
+
+                targetWidget = self.leftWidget.grids[target_col][target_row]
+                destWidget = self.leftWidget.grids[dest_col][dest_row]
+                self.rightWidget.commandPanel.clear()
+                if widgetDragDrop(targetWidget, destWidget):
+                    self.game_flow_status = Game_flow_status.opponent_turn
+                    QTimer.singleShot(500, self.focus_back)
+            else:
+                self.chessBoard.board_object.pop()
+                self.rightWidget.commandPanel.clear()
+                print("Cancel!")
+        elif movePair == "Promotion":
+            print("Promotion")
+            speak(
+                "Please indicate the promotion piece by typing the first letter"
+            )
+            self.rightWidget.commandPanel.setFocus()
+        else:
+            speak(move + movePair)
+            print(move + movePair)  ##error move speak
+            self.rightWidget.commandPanel.clear()
         
+        QTimer.singleShot(1000, self.puzzle_mode_GetTitle)
+        QTimer.singleShot(500, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.getPiecesLocation, self.getPiecesLocation))
 
     def clickNextPuzzle(self):
         def callback(x):
+            self.userColor = None
+            self.change_main_flow_status(Bot_flow_status.board_init_status)
             QTimer.singleShot(2000, self.puzzle_mode_InitBoard)
 
         self.leftWidget.chessWebView.page().runJavaScript(js_function.clickNextPuzzle, callback)
+
+    def retryPuzzle(self):
+        def callback(x):
+            self.userColor = None
+            self.change_main_flow_status(Bot_flow_status.board_init_status)
+            QTimer.singleShot(2000, self.puzzle_mode_InitBoard)
+
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.retryPuzzle, callback)
 
 ## Puzzle Mode End
 
@@ -1104,8 +1394,7 @@ class MainWindow(QMainWindow):
     def resign_handler(self):
         dlg = confirmDialog("to resign from current game.")
         if dlg.exec():
-            self.change_main_flow_status(Bot_flow_status.setting_status)
-
+            self.change_main_flow_status(Bot_flow_status.game_end_status)
             def callBack():
                 self.game_flow_status = Game_flow_status.game_end
                 speak(Speak_template.user_resign.value)
@@ -1204,7 +1493,7 @@ class MainWindow(QMainWindow):
 
     def focus_back(self):
             if self.input_mode == Input_mode.arrow_mode:
-                self.leftWidget.grids[self.currentFocus].setFocus()
+                self.leftWidget.grids[self.col][self.row].setFocus()
             else:
                 self.rightWidget.commandPanel.setFocus()
             return
@@ -1225,7 +1514,6 @@ class MainWindow(QMainWindow):
         if self.game_play_mode == Game_play_mode.puzzle_mode:
             if self.game_flow_status == Game_flow_status.user_turn:
                 self.puzzle_movePiece(input)
-                QTimer.singleShot(2000, self.puzzle_mode_GetTitle)
             else:
                 speak("Please wait for your opponent")
             self.rightWidget.commandPanel.clear()
@@ -1372,46 +1660,48 @@ class MainWindow(QMainWindow):
             # movePair = movePair[0]
 
         if len(uci_string) == 5:
-            self.moveList.append(uci_string)  ## record move
 
-            target = uci_string[:2]
+            target_col = int(CHESSBOARD_LOCATION_CONVERSION[uci_string[0].lower()]) - 1 
+            target_row = int(uci_string[1]) - 1
+            dest_col = int(CHESSBOARD_LOCATION_CONVERSION[uci_string[2].lower()]) - 1   #index
+            dest_row = int(uci_string[3]) - 1
             dest = uci_string[2:4]
-            promoteTo = (
-                san_string[san_string.index("=") + 1].__str__().lower()
-            )
+            print(f"dest_row: {dest_row}, dest_col: {dest_col}")
+            promoteTo = uci_string[4].lower()
             promote_index = list(PIECE_TYPE_CONVERSION).index(promoteTo)
+
+            print(f"promote_index: {promote_index}")
 
             # dlg = confirmMoveDialog("pawn", dest, promote=promoteTo)
             dlg = confirmDialog(human_string)
             if dlg.exec():
                 self.all_grids_switch(False)
-                targetWidget = self.leftWidget.grids[target]
-                destWidget = self.leftWidget.grids[dest]
+                targetWidget = self.leftWidget.grids[target_col][target_row]
+                destWidget = self.leftWidget.grids[dest_col][dest_row]
                 if widgetDragDrop(targetWidget, destWidget):
                     match self.userColor:
                         case "BLACK":
-                            place = str(dest[0]) + str(
-                                int(dest[1]) + promote_index
-                            )
+                            promoteRow = dest_row + promote_index
                         case "WHITE":
-                            place = str(dest[0]) + str(
-                                int(dest[1]) - promote_index
-                            )
-                    promoteWidget = self.leftWidget.grids[place]
+                            promoteRow =  dest_row - promote_index
+                    print(f"dest_col: {dest_col}, promoteRow: {promoteRow}")
+                    promoteWidget = self.leftWidget.grids[dest_col][promoteRow]
                     if widgetClick(promoteWidget):
                         self.rightWidget.commandPanel.clear()
                         QTimer.singleShot(1000, self.focus_back)
                         self.getOpponentMoveTimer.start(1000)
+                        self.setMoveList(uci_string)
             else:
                 self.chessBoard.board_object.pop()
                 self.rightWidget.commandPanel.clear()
                 print("Cancel!")
 
         elif len(uci_string) == 4:
-            self.moveList.append(uci_string)    ## record move
 
-            target = uci_string[:2]
-
+            target_col = int(CHESSBOARD_LOCATION_CONVERSION[uci_string[0].lower()]) - 1
+            target_row = int(uci_string[1]) - 1
+            dest_col = int(CHESSBOARD_LOCATION_CONVERSION[uci_string[2].lower()]) - 1
+            dest_row = int(uci_string[3]) - 1
             dest = uci_string[2:4]
             target_type = PIECE_TYPE_CONVERSION.get(
                 self.chessBoard.check_grid(dest).__str__().lower()
@@ -1423,12 +1713,14 @@ class MainWindow(QMainWindow):
                 # QTimer.singleShot(3000, partial(self.clickStart,input))
                 # print(self.chessBoard.board_object)
 
-                targetWidget = self.leftWidget.grids[target]
-                destWidget = self.leftWidget.grids[dest]
+                targetWidget = self.leftWidget.grids[target_col][target_row]
+                destWidget = self.leftWidget.grids[dest_col][dest_row]
                 self.rightWidget.commandPanel.clear()
                 if widgetDragDrop(targetWidget, destWidget):
                     QTimer.singleShot(1000, self.focus_back)
                     self.getOpponentMoveTimer.start(1000)
+                    self.setMoveList(uci_string)
+                    
             else:
                 self.chessBoard.board_object.pop()
                 self.rightWidget.commandPanel.clear()
@@ -1443,6 +1735,8 @@ class MainWindow(QMainWindow):
             speak(input + movePair)
             print(input + movePair)  ##error move speak
             self.rightWidget.commandPanel.clear()
+        
+        QTimer.singleShot(500, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.getPiecesLocation, self.getPiecesLocation))
 
     ##check game end, sync with mirrored chess board and announce opponent's move
     def announceMove(self, sanString):
@@ -1458,6 +1752,7 @@ class MainWindow(QMainWindow):
             self.change_main_flow_status(Bot_flow_status.setting_status)
             self.getOpponentMoveTimer.stop()
             self.getScoreTimer.start(1000)
+
             return True
         
         print("check none ")
@@ -1515,7 +1810,7 @@ class MainWindow(QMainWindow):
         def callback(result):
             if result:
                 self.game_flow_status = Game_flow_status.game_end
-                self.change_main_flow_status(Bot_flow_status.setting_status)
+                self.change_main_flow_status(Bot_flow_status.game_end_status)
                 self.getScoreTimer.start(1000)
                 self.getOpponentMoveTimer.stop()
                 print(result)
@@ -1534,6 +1829,10 @@ class MainWindow(QMainWindow):
             
             if self.announceMove(x):
                 self.getOpponentMoveTimer.stop()
+                move = self.chessBoard.board_object.pop()
+                self.setMoveList(move)
+                self.chessBoard.board_object.push_uci(str(move))
+                self.leftWidget.chessWebView.page().runJavaScript(js_function.getPiecesLocation, self.getPiecesLocation)
             else:
                 self.getOpponentMoveTimer.start(1000)
 
@@ -1627,92 +1926,72 @@ class MainWindow(QMainWindow):
 
     ##assign square after detect the web view chessboard and color
     def getBoard(self, *args):
-        for row in range(8):
-            for col in range(8):
-                self.leftWidget.grids[self.alphabet[col] + self.number[row]] = (
-                    self.leftWidget.grids.pop(row.__str__() + col.__str__())
-                )
-                self.leftWidget.grids[
-                    self.alphabet[col] + self.number[row]
-                ].setAccessibleName(self.alphabet[col] + self.number[row])
-
         self.chessBoard = ChessBoard(args[0]) if(args) else ChessBoard()
         self.change_main_flow_status(Bot_flow_status.game_play_status)
 
     ##toggle the marked square layer -> hide before perfrom click
     def all_grids_switch(self, on_off):
-        for grid in self.leftWidget.grids.values():
-            if on_off:
-                grid.show()
-            else:
-                grid.hide()
+        for i in range(8):
+            for j in range(8):
+                if on_off:
+                    self.leftWidget.grids[i][j].show()
+                else:
+                    self.leftWidget.grids[i][j].hide()
 
     ##computer vision to detect the chessboard
-    def initBoard(self, retry=0):
-        if retry > 3:
-            speak("board detection error, retry initialize", True)
-            if self.game_play_mode == Game_play_mode.computer_mode:
-                self.playWithComputerHandler()
-            elif(self.game_play_mode == Game_play_mode.online_mode):
-                self.playWithOtherButtonHandler()
-            return
-        
-        x = None
-        try:
-            file_path = os.path.join(current_dir, "Tmp", "board_screenshot.png")
-            # file_path = "./widget_screenshot.png"
-            screenshot = self.leftWidget.chessWebView.grab()
-            screenshot.save(file_path)
-            print("cap here")
-            viewWidth = self.leftWidget.chessWebView.width()
-            viewHeight = self.leftWidget.chessWebView.height()
-            x, y, w, h = detectChessboard(file_path, viewWidth, viewHeight)
-        except Exception as e:
-            print("error retry", e)
-            retry = retry + 1
-            # QTimer.singleShot(2000, partial(self.initBoard, retry))
-                
-        self.board_x = int(x)
-        self.board_y = int(y)
-        self.board_w = int((w / 8))
-        self.board_h = int((h / 8))
-        print(f"x: {self.board_x}, y: {self.board_y}, w: {self.board_w}, h: {self.board_h}")
-
-        for row in range(8):
-            for col in range(8):
-                label = QLabel(self.leftWidget)
-                label.setGeometry(self.board_x + col * self.board_w, self.board_y + row * self.board_h, self.board_w, self.board_h)
-                # if (row + col) % 2 == 0:
-                #     label.setStyleSheet("background-color: rgba(0, 0, 255, 100);")
-                # else:
-                #     label.setStyleSheet("background-color: rgba(255, 0, 0, 100);")
-                self.leftWidget.grids[row.__str__() + col.__str__()] = label
-                label.show()
-                # label.hide()  # comment this to check whether the board detect success
         
     def getColor(self):
-        user_rook_file = os.path.join(current_dir, "Tmp", "color_detection_user.png")
+        def callback(color):
+            print(color)
+            self.userColor = color
+            self.rightWidget.colorBox.setText("Assigned Color: " + color)
+            if color == "BLACK":
+                self.opponentColor = "WHITE"
+                self.row, self.col = 7, 7
+                self.currentPos = 'h8'
+                speak(Speak_template.user_black_side_sentense.value)
+                self.game_flow_status = Game_flow_status.opponent_turn
+                self.getOpponentMoveTimer.start(1000)
+            else:
+                self.opponentColor = "BLACK"
+                self.row, self.col = 0, 0
+                self.currentPos = 'a1'
+                speak(Speak_template.user_white_side_sentense.value)
+                self.game_flow_status = Game_flow_status.user_turn
 
-        user_rook = self.leftWidget.grids["77"]
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.getColor, callback)
 
-        self.leftWidget.chessWebView.grab(
-            QRect(user_rook.x(), user_rook.y(), self.board_w, self.board_h)
-        ).save(user_rook_file)
+    def initBoard(self):
+        def callback(coor):
+            print(coor)
+            x = coor[0]
+            y = coor[1]
+            dist = coor[2]
+            print(f"INITBOARD COLOR: {self.userColor}")
+            if(self.userColor == "WHITE"):
+                for row in range(8):
+                    for col in range(8):
+                        label = QLabel(self)
+                        label.setGeometry(int(x + col*dist), int(y - row*dist), int(dist*0.5), int(dist*0.5))
+                        pos = list(CHESSBOARD_LOCATION_CONVERSION.keys())[list(CHESSBOARD_LOCATION_CONVERSION.values()).index(str(col+1))] + str(row+1)
+                        # label.setText(pos)
+                        label.setAccessibleName(pos)
+                        label.hide()
+                        self.leftWidget.grids[col][row] = label
+            else:
+                for row in reversed(range(8)):
+                    for col in reversed(range(8)):
+                        label = QLabel(self)
+                        label.setGeometry(int(x + (7-col)*dist), int(y - (7-row)*dist), int(dist*0.5), int(dist*0.5))
+                        pos = list(CHESSBOARD_LOCATION_CONVERSION.keys())[list(CHESSBOARD_LOCATION_CONVERSION.values()).index(str(col+1))] + str(row+1)
+                        # label.setText(pos)
+                        label.setAccessibleName(pos)
+                        label.hide()
+                        self.leftWidget.grids[col][row] = label
 
-        color = userColor(user_rook_file)
-        self.userColor = color
-        self.rightWidget.colorBox.setText("Assigned Color: " + color)
-        if color == "BLACK":
-            self.opponentColor = "WHITE"
-            self.alphabet.reverse()
-            speak(Speak_template.user_black_side_sentense.value)
-            self.game_flow_status = Game_flow_status.opponent_turn
-            self.getOpponentMoveTimer.start(1000)
-        else:
-            self.opponentColor = "BLACK"
-            self.number.reverse()
-            speak(Speak_template.user_white_side_sentense.value)
-            self.game_flow_status = Game_flow_status.user_turn
+            self.leftWidget.chessWebView.page().runJavaScript(js_function.getPiecesLocation, self.getPiecesLocation)
+
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.getBoard, callback)
 
     ##switch to command mode
     def switch_command_mode(self):
@@ -1734,59 +2013,66 @@ class MainWindow(QMainWindow):
             self.all_grids_switch(True)
             self.rightWidget.commandPanel.clear()
 
-            self.leftWidget.setStyleSheet(
+            self.setStyleSheet(
                 "QLabel:focus { border: 5px solid rgba(255, 0, 0, 1); }"
             )
-            init_focus = self.alphabet[0].__str__() + self.number[-1].__str__()
-            self.leftWidget.grids[init_focus].setFocus()
-            self.currentFocus = init_focus
+
+            self.leftWidget.grids[self.col][self.row].setFocus()
 
     ##arrow key move and speak the square information
     def handle_arrow(self, direction):
         if not self.main_flow_status == Bot_flow_status.game_play_status:
             return
-        
-        file = self.currentFocus[0]
-        rank = self.currentFocus[1]
-
-        alphabet_index = self.alphabet.index(file)
-        number_index = self.number.index(rank)
         # print(self.currentFocus, direction)
+        print(f"col: {self.col}, row: {self.row}")
         match direction:
-            case "UP":
-                num = max(number_index - 1, 0)
-                self.leftWidget.grids[file + self.number[num]].setFocus()
-                self.currentFocus = file + self.number[num]
-            case "DOWN":
-                num = min(number_index + 1, 7)
-                self.leftWidget.grids[file + self.number[num]].setFocus()
-                self.currentFocus = file + self.number[num]
-            case "LEFT":
-                alp = max(alphabet_index - 1, 0)
-                self.leftWidget.grids[self.alphabet[alp] + rank].setFocus()
-                self.currentFocus = self.alphabet[alp] + rank
-            case "RIGHT":
-                alp = min(alphabet_index + 1, 7)
-                self.leftWidget.grids[self.alphabet[alp] + rank].setFocus()
-                self.currentFocus = self.alphabet[alp] + rank
+            case 'UP':
+                if(self.userColor == "WHITE"):
+                    self.row = min(self.row + 1, 7)
+                    self.leftWidget.grids[self.col][self.row].setFocus()
+                else:
+                    self.row = max(self.row - 1, 0)
+                    self.leftWidget.grids[self.col][self.row].setFocus()
+    
+            case 'DOWN':
+                if(self.userColor == "WHITE"):
+                    self.row = max(self.row - 1, 0)
+                    self.leftWidget.grids[self.col][self.row].setFocus()
+                else:
+                    self.row = min(self.row + 1, 7)
+                    self.leftWidget.grids[self.col][self.row].setFocus()
+
+            case 'RIGHT':
+                if(self.userColor == "WHITE"):
+                    self.col = min(self.col + 1, 7)
+                    self.leftWidget.grids[self.col][self.row].setFocus()
+                else:
+                    self.col = max(self.col - 1, 0)
+                    self.leftWidget.grids[self.col][self.row].setFocus()
+
+            case 'LEFT':
+                if(self.userColor == "WHITE"):
+                    self.col = max(self.col - 1, 0)
+                    self.leftWidget.grids[self.col][self.row].setFocus()
+                else:
+                    self.col = min(self.col + 1, 7)
+                    self.leftWidget.grids[self.col][self.row].setFocus()
         # QLabel.setAccessibleDescription("HELLO")
         # QLabel.setAccessibleName("Name")
-        piece = self.chessBoard.check_grid(self.currentFocus).__str__()
+        self.currentPos = list(CHESSBOARD_LOCATION_CONVERSION.keys())[list(CHESSBOARD_LOCATION_CONVERSION.values()).index(str(self.col+1))] + str(self.row+1)
+        piece = self.chessBoard.check_grid(self.currentPos).__str__()
         if piece == "None":
-            speak("{0}".format(self.currentFocus.upper()))
+            speak("{0}".format(self.currentPos))
             return
         else:
             color = "white" if piece.isupper() else "black"
             piece_square_text = "{0} {1} {2}".format(
-                self.currentFocus.upper(),
+                self.currentPos,
                 color,
                 PIECE_TYPE_CONVERSION.get(piece.lower()),
             )
             print(piece_square_text)
             speak(piece_square_text)
-            self.leftWidget.grids[self.currentFocus].setAccessibleDescription(
-                piece_square_text
-            )
 
     ##select the piece under arrow mode
     def handle_space(self):
@@ -1795,15 +2081,15 @@ class MainWindow(QMainWindow):
         if len(self.rightWidget.commandPanel.text()) == 4:
             self.CommandPanelHandler()
             return
-        if not self.currentFocus == None:
-            piece = self.chessBoard.check_grid(self.currentFocus).__str__()
+        if not self.currentPos == None:
+            piece = self.chessBoard.check_grid(self.currentPos).__str__()
             if not piece == "None":
                 color = "white" if piece.isupper() else "black"
                 piece = PIECE_TYPE_CONVERSION.get(piece.lower())
                 speak(color + " " + piece + " selected")
 
         current_value = self.rightWidget.commandPanel.text()
-        self.rightWidget.commandPanel.setText(current_value + self.currentFocus)
+        self.rightWidget.commandPanel.setText(current_value + self.currentPos)
         if len(self.rightWidget.commandPanel.text()) == 4:
             self.CommandPanelHandler()
 
@@ -1820,7 +2106,8 @@ class MainWindow(QMainWindow):
             # if self.main_flow_status == Bot_flow_status.login_status:
             #     unhidden_widgets = self.rightWidget.login_menu
             if self.game_play_mode == Game_play_mode.analysis_mode:
-                unhidden_widgets = self.rightWidget.analysisButton
+                unhidden_widgets = self.rightWidget.analysis_menu
+                print(len(unhidden_widgets))
             else:
                 layout = self.rightWidget.layout()
                 for i in range(layout.count()):
@@ -1854,7 +2141,7 @@ class MainWindow(QMainWindow):
             speak(intro)
                         
         else:
-            self.leftWidget.grids[self.currentFocus].setFocus()
+            self.leftWidget.grids[self.col][self.row].setFocus()
 
     ##switch to arrow mode
     def arrow_mode_switch(self, on_off):
@@ -1922,6 +2209,27 @@ class MainWindow(QMainWindow):
                 if self.input_mode == Input_mode.command_mode:
                     speak(Speak_template.command_panel_vinput_help_message.value)
 
+    def setMoveList(self, move):
+        print(f"MOVE = {move} Type = {type(move)}")
+        if(isinstance(move, str)):
+            if(self.moveList_element % 2 == 0):
+                self.moveListString += str(self.moveList_line) + ". " + move.lower() + ", "
+            else:
+                self.moveListString += move.lower() + ", "
+                self.moveList_line += 1
+        else:
+            if(self.moveList_element % 2 == 0):
+                self.moveListString += str(self.moveList_line) + ". " + self.chessBoard.board_object.parse_san(str(move)).uci() + ", "
+            else:
+                self.moveListString += self.chessBoard.board_object.parse_san(str(move)).uci() + ", "
+                self.moveList_line += 1
+            
+        if(self.moveList_element % 10 == 0 and self.moveList_element != 0):
+                self.moveListString += "\n"
+        self.moveList_element += 1
+
+        self.rightWidget.moveList.setText("Move List:\n" + self.moveListString)
+
     def __init__(self, *args, **kwargs):
         
         global previous_sentence
@@ -1929,11 +2237,16 @@ class MainWindow(QMainWindow):
         self.alphabet = ["A", "B", "C", "D", "E", "F", "G", "H"]
         self.number = ["1", "2", "3", "4", "5", "6", "7", "8"]
         self.chess_position = [a + b for a in [x.lower() for x in self.alphabet] for b in self.number]
-        self.moveList = []
+        self.moveListString = ""
+        self.moveList_line = 1
+        self.moveList_element = 0
         self.FenNotation = ""
         self.userLoginName = ""
         self.previous_game_exist = False
         self.boardDescription = []
+        self.whiteLoc = []
+        self.blackLoc = []
+        self.timeControl = ""
 
         super(MainWindow, self).__init__(*args, **kwargs)
 
@@ -2005,9 +2318,6 @@ class MainWindow(QMainWindow):
 
         self.shortcut_A = QShortcut(QKeySequence("a"), self)
         self.shortcut_A.activated.connect(self.analysisModeHandler)
-
-        shortcut_q = QShortcut(QKeySequence("q"), self)
-        shortcut_q.activated.connect(lambda: print(self.rightWidget.setting_layout.count()))
         
         self.arrow_shortcut = {
             "MENUUP": shortcut_menu_up,
@@ -2095,6 +2405,10 @@ class MainWindow(QMainWindow):
             self.puzzleModeHandler
         )
 
+        self.rightWidget.nextPuzzleButton.clicked.connect(self.clickNextPuzzle)
+
+        self.rightWidget.retryPuzzleButton.clicked.connect(self.retryPuzzle)
+
         self.rightWidget.resign.clicked.connect(self.resign_handler)
 
         self.rightWidget.loginButton.clicked.connect(lambda: self.change_main_flow_status(Bot_flow_status.login_status))
@@ -2113,7 +2427,7 @@ class MainWindow(QMainWindow):
 
         self.leftWidget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
-        self.getScoreTimer = QTimer()
+        self.   getScoreTimer = QTimer()
         self.getScoreTimer.timeout.connect(self.check_score)
 
         self.getOpponentMoveTimer = QTimer()
@@ -2154,29 +2468,47 @@ class MainWindow(QMainWindow):
         self.rightWidget.playWithOther_Rapid_30_0_Button.clicked.connect(lambda: self.online_select_timeControl(timeControl.timeControl_30_0.value))
 
         #analysis mode button connection
+        self.rightWidget.gamereviewButton.clicked.connect(self.analysisModeHandler)
         self.rightWidget.analysis_NextMove_Button.clicked.connect(self.analysis_NextMove)
         self.rightWidget.analysis_PreviousMove_Button.clicked.connect(self.analysis_PreviousMove)
         self.rightWidget.analysis_FirstMove_Button.clicked.connect(self.analysis_FirstMove)
         self.rightWidget.analysis_BestMove_Button.clicked.connect(self.analysis_BestMove)
-        self.rightWidget.analysis_Explanation_Button.clicked.connect(self.analysis_Explanation)
-        self.rightWidget.analysis_CurrentMove_Button.clicked.connect(self.analysis_CurrentMove)
+        # self.rightWidget.analysis_Explanation_Button.clicked.connect(self.analysis_Explanation)
+        # self.rightWidget.analysis_CurrentMove_Button.clicked.connect(self.analysis_CurrentMove)
         # self.rightWidget.analysis_LastMove_Button.clicked.connect(self.analysis_LastMove)
 
+        self.rightWidget.newgameButton.clicked.connect(self.newGame)
         self.rightWidget.returnToHomePageButton.clicked.connect(self.returnHomePage)
 
-        voice_input_thread.action_signal.connect(self.voice_action)
+        voice_input_thread.action_signal.connect(self.check_action) #receive voice input signal
+        self.chatbotWidget.action_signal.connect(self.check_action) 
+
+    def newGame(self):
+        timeControl = self.timeControl
+        game_play_mode = self.game_play_mode
+        print(f"time control = {timeControl}")
+        self.change_main_flow_status(Bot_flow_status.setting_status)
+        match(game_play_mode):
+            case Game_play_mode.computer_mode:
+                print("computer")
+            case Game_play_mode.online_mode:
+                print("Starting a new game")
+                speak("Starting a new game")
+                self.check_action(timeControl)
 
     def returnHomePage(self):
-        self.keyPressed_Signal.disconnect(self.analysisAction)
-        self.shortcut_A.activated.connect(self.analysisModeHandler)
+        if(self.game_play_mode == Game_play_mode.analysis_mode):
+            self.keyPressed_Signal.disconnect(self.analysisAction)
+            self.shortcut_A.activated.connect(self.analysisModeHandler)
         self.leftWidget.chessWebView.load(QUrl("https://www.chess.com"))
         self.change_main_flow_status(Bot_flow_status.setting_status)
-        self.change_game_mode(None)
+        speak("You have returned to home page")
 
     def macroView(self):
         self.exist_square = []
         black = ["q", "n", "r", "b","p","k"]
         white = ["Q", "N", "R", "B","P","K"]
+        result = ""
         match(self.userColor):
             case "WHITE":
                 for square in chess.SQUARES:
@@ -2187,6 +2519,7 @@ class MainWindow(QMainWindow):
                     piece = self.chessBoard.board_object.piece_at(i)
                     if self.chessBoard.board_object.is_attacked_by(chess.BLACK, i):
                         print(f"Piece {PIECES_SHORTFORM_CONVERTER[piece.symbol()]} at square {chess.SQUARE_NAMES[i]} is being attacked")
+                        result += (f"Piece {PIECES_SHORTFORM_CONVERTER[piece.symbol()]} at square {chess.SQUARE_NAMES[i]} is being attacked.\n")
             case "BLACK":
                 for square in chess.SQUARES:
                     piece = self.chessBoard.board_object.piece_at(square)
@@ -2196,10 +2529,12 @@ class MainWindow(QMainWindow):
                     piece = self.chessBoard.board_object.piece_at(i)
                     if self.chessBoard.board_object.is_attacked_by(chess.WHITE, i):
                         print(f"Piece {PIECES_SHORTFORM_CONVERTER[piece.symbol()]} at square {chess.SQUARE_NAMES[i]} is being attacked")
+                        result += (f"Piece {PIECES_SHORTFORM_CONVERTER[piece.symbol()]} at square {chess.SQUARE_NAMES[i]} is being attacked")
+        speak(result)
 
     def chatbot(self):
             self.chatbotWidget.show()
-            speak("Hello! I am a Chat Bot. How can I help you today? Type in your question and I will answer immediately.")
+            speak("Hello! I am a Chat Bot. How can I help you today? Type in your question and I will answer immediately. You can type in how to use for help.")
             
 ## Game Review Function
     def analysisModeHandler(self):
@@ -2213,10 +2548,10 @@ class MainWindow(QMainWindow):
         def callback1(gameId):
             print(gameId)
             self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(3000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.checkReviewLimited, callback2)))
-            if(self.game_play_mode == Game_play_mode.computer_mode):
-                self.leftWidget.chessWebView.load(QUrl(f"https://www.chess.com/analysis/game/computer/{gameId}"))
-            else:
-                self.leftWidget.chessWebView.load(QUrl(f"https://www.chess.com/analysis/game/live/{gameId}"))
+            # if(self.game_play_mode == Game_play_mode.computer_mode):
+            self.leftWidget.chessWebView.load(QUrl(f"https://www.chess.com/analysis/game/computer/{gameId}"))
+            # else:
+                # self.leftWidget.chessWebView.load(QUrl(f"https://www.chess.com/analysis/game/live/{gameId}"))
 
         def callback2(ReviewLimited):
             print(f"Reivew Limited: {ReviewLimited}")
@@ -2234,7 +2569,7 @@ class MainWindow(QMainWindow):
 
         def callback3(value):
             if(value == None):
-                self.leftWidget.chessWebView.page().runJavaScript(js_function.clickStartReview, callback3)
+                QTimer.singleShot(500, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.clickStartReview, callback3))
             else:
                 callback4(value)
 
@@ -2243,24 +2578,27 @@ class MainWindow(QMainWindow):
             self.leftWidget.chessWebView.setFocus()
             self.gameReviewMode_Reader(comment)
 
+        def checkLogin(button):
+            if(button != None):
+                print("Please login for Game Review Function")
+                speak("Please login for Game Review Function")
+                return
+            self.shortcut_A.activated.disconnect()
+            self.bestExist = False
+            self.analysisCount = 0
+            self.keyPressed = None
+            self.analysisBoard = ChessBoard()
+            self.moveLength = -1
+            self.leftWidget.chessWebView.page().runJavaScript(js_function.clickGameReview, callback0)
+        
         # if(self.game_flow_status != Game_flow_status.game_end):
         #     print("No finished game for analysis")
         #     speak("No finished game for analysis")
         #     return
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.checkLogin, checkLogin)
         
-        # if(self.leftWidget.userLoginName != None):
-        #     print("Please login for Game Review Function")
-        #     speak("Please login for Game Review Function")
-        #     return
-        
-        self.shortcut_A.activated.disconnect()
-        self.bestExist = False
-        self.analysisCount = 0
-        self.keyPressed = None
-        self.analysisBoard = ChessBoard()
-        self.moveLength = -1
-        self.leftWidget.chessWebView.page().runJavaScript(js_function.clickGameReview, callback0)
-        
+
+
     def gameReviewMode_Reader(self, comment):
         print(comment)
         if(isinstance(comment, list)):
@@ -2278,13 +2616,14 @@ class MainWindow(QMainWindow):
 
             print(f"Board: {self.analysisBoard.board_object}")
             sanString = self.feedback.split(" ")[0].strip()
-            self.rightWidget.analysisCurrentMove.setText("Current Move: \n" + sanString + ", ")
+            print(f"sanstring: {sanString}")
+            # self.rightWidget.analysisCurrentMove.setText("Current Move: \n" + sanString + ", ")
             print(f"feedback: {self.feedback}")
             self.feedback = self.feedback.replace(sanString, self.analysisHumanForm(self.feedback))
             if(self.explain != None):
                 self.rightWidget.analysisExplanation.setText("Explanation: \n" + self.explain)
             else:
-                self.rightWidget.analysisExplanation.setText("Explanation:")
+                self.rightWidget.analysisExplanation.setText("Explanation: No content")
         else:
             if(self.keyPressed == Qt.Key.Key_Left):
                 self.analysisBoard.board_object.pop()
@@ -2388,12 +2727,11 @@ class MainWindow(QMainWindow):
         else:
             self.analysisBoard.board_object.push_san(sanString)
 
-        self.rightWidget.analysisCurrentMove.setText(self.rightWidget.analysisCurrentMove.text() + ("Current Move: \n" + result))
+        self.rightWidget.analysisCurrentMove.setText(("Current Move: \n" + result))
         return result
     
     def analysis_NextMove(self):
         if (self.cooldown == True):
-            print("Please slow down your button pressing")
             return
         self.cooldown = True
         self.cooldownTimer.start(500)
@@ -2402,7 +2740,6 @@ class MainWindow(QMainWindow):
 
     def analysis_PreviousMove(self):
         if (self.cooldown == True):
-            print("Please slow down your button pressing")
             return
         self.cooldown = True
         self.cooldownTimer.start(500)
@@ -2411,7 +2748,6 @@ class MainWindow(QMainWindow):
 
     def analysis_FirstMove(self):
         if (self.cooldown == True):
-            print("Please slow down your button pressing")
             return
         self.cooldown = True
         self.cooldownTimer.start(500)
@@ -2424,7 +2760,6 @@ class MainWindow(QMainWindow):
 
     def analysis_BestMove(self):
         if (self.cooldown == True):
-            print("Please slow down your button pressing")
             return
         self.cooldown = True
         self.cooldownTimer.start(500)
@@ -2462,7 +2797,7 @@ class MainWindow(QMainWindow):
             print("Voice input End")
             speak("Voice input end")
 
-    def voice_action(self, str):
+    def check_action(self, str):
         match(str):
             case "options":
                 self.helper_menu()
@@ -2480,7 +2815,20 @@ class MainWindow(QMainWindow):
             case "resign":
                 self.resign_handler()
             case _:
-                self.online_select_timeControl(str)
+                if (self.game_flow_status != Bot_flow_status.select_status and self.game_flow_status != Bot_flow_status.game_play_status):
+                    self.game_play_mode = Game_play_mode.online_mode
+                    self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(2000, lambda: self.online_select_timeControl(str)))
+                    self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/play/online"))
+                    layout = self.rightWidget.layout()
+                    unhidden_widgets = []
+                    for i in range(layout.count()):
+                        widget = layout.itemAt(i).widget()
+                        if widget and not widget.isHidden():
+                            unhidden_widgets.append(widget)
+                    for item in unhidden_widgets:
+                        item.hide()
+                else:
+                    self.online_select_timeControl(str)
 
     def currentOption(self):
         match self.main_flow_status:
@@ -2517,7 +2865,7 @@ class VoiceInput_Thread(QThread):
         super(VoiceInput_Thread, self).__init__()
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model = whisper.load_model("small.en", device=device)
+        self.model = whisper.load_model("./small.en.pt", device=device)
         
         self.audio_input = "test.wav"
         self.text_output = ""
@@ -2556,7 +2904,7 @@ class VoiceInput_Thread(QThread):
                 self.frames=[]
                 self.activate = False
                 print("Speech to Text performing...")
-                self.text_output = self.model.transcribe("./tmp.wav", fp16=False)["text"].lower()
+                self.text_output = self.model.transcribe("./tmp.wav", fp16=False, env=my_env)["text"].lower()
                 print(f"Speech to Text finished! Output: {self.text_output}")
                 self.checkAction()
 
@@ -2649,6 +2997,17 @@ if __name__ == "__main__":
     voice_input_thread = VoiceInput_Thread()  #activate S2T module
 
     current_dir = os.path.dirname(os.path.realpath(__file__))
+
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        ffmpeg_dir = os.path.join(os.path.dirname(sys.executable), 'ffmpeg', 'bin')
+        my_env = os.environ
+        my_env['PATH'] = f"{ffmpeg_dir}{os.pathsep}{my_env['PATH']}"
+    else:
+        ffmpeg_dir = os.path.join(current_dir, 'ffmpeg', 'bin')
+        my_env = os.environ
+        my_env['PATH'] = f"{ffmpeg_dir}{os.pathsep}{my_env['PATH']}"
+
+    print(my_env)
 
     app = QApplication(sys.argv)
     app.setApplicationName("Chess Bot")

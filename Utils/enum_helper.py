@@ -17,6 +17,8 @@ class Bot_flow_status(Enum):
     select_status = "SELECT_STATUS"
     board_init_status = "BOARD_INIT_STATUS"
     game_play_status = "GAME_PLAY_STATUS"
+    game_end_status = "GAME_END_STATUS"
+    puzzle_end_status = "PUZZLE_END_STATUS"
 
 
 class Game_flow_status(Enum):
@@ -30,7 +32,7 @@ class Game_flow_status(Enum):
 class Speak_template(Enum):
     ###setting
     welcome_sentense = "Welcome to chess bot!! "
-    game_intro_sentense = "you can press control O to find the options. <> press control R to repeat last sentence"
+    game_intro_sentense = "you can press control O to find the options. <> press control R to repeat last sentence. <> press TAB key to select options. <> press w to call out Chat bot to answer your questions"
     setting_state_help_message = (
         "Press Control + 1 to play with computer. Press Control + 2 to play with other online player. Or press tab key to select from buttons. You can also press Control + S to start record voice input, and press Control + S again to stop. Each voice input can only perform one action. For voice input command, press Control Q to list the available options in current state."
     )
@@ -73,7 +75,6 @@ class Speak_template(Enum):
 
     #analysis
     analysis_help_message = "Press Right Arrow Key for next move. Press Left Arrow Key for previous move. Press Up Arrow Key for the first move. Press E for explanation. Press B to get the best move. Press C to get the current move. Or press tab key to select function from buttons."
-
 
 
 class english_chess_pieces_name(Enum):
@@ -294,3 +295,8 @@ class timeControlDeterminant_Speak(Enum):
     timeControl_10_0_words = dict.fromkeys(["10 + 0", "ten minutes", "10 minutes", "10 plus 0"], timeControl.timeControl_10_0.value)
     timeControl_15_10_words = dict.fromkeys(["15 + 10", "fifteen plus ten", "15 plus 10"], timeControl.timeControl_15_10.value)
     timeControl_30_0_words = dict.fromkeys(["30 + 0", "thirty minutes", "30 minutes", "30 plus 0", "default"], timeControl.timeControl_30_0.value)
+
+# for item in timeControlDeterminant_Type:
+#     for words in item.value:
+#         print(words)
+    
