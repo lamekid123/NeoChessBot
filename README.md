@@ -68,6 +68,7 @@ NeoChessBot is a upgraded version of [ChessBot](https://github.com/GNOLNG/ChessB
   - **Press Control + S twice for a single input**
   - **The first Control + S indicates voice input activated and it will record your voice**
   - **The second Control + S terminate the recording session and process the audio to determine your voice input action**
+
 **Keywords/Formats for Voice Input:**
 | Actions | Keywords|
 | --- | --- |
@@ -77,6 +78,7 @@ NeoChessBot is a upgraded version of [ChessBot](https://github.com/GNOLNG/ChessB
 | Resign | [resign, resignation, give up, forfeit, surrender] |
 | Select Time Control | Format of “{minute}+{increment}” E.g. “5+0”, “5 minute(s)”, “5 plus 0” for 5 minutes |
 | Chess Move | Sentence that contains the components of Universal Chess Interface (UCI) notation. E.g. “Move e2 to e4” => “e2e4” |
+
   - **Most reliable format for moving chess piece: "Move {source grid} to {destination grid}" e.g. "Move E2 to E4"**
 ---
 
