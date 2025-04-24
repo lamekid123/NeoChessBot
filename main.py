@@ -16,15 +16,17 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QCheckBox,
     QTextEdit,
+    QSlider,
+    QComboBox,
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEnginePage
-from PyQt6.QtCore import QUrl, Qt, QTimer, QRect, QThread, pyqtSignal
+from PyQt6.QtCore import QUrl, Qt, QTimer, QThread, pyqtSignal, QSettings
 from PyQt6.QtGui import QFont, QShortcut, QKeySequence, QIcon
 
 
 import Components.js_function as js_function    ## header file
-from Components.piece_move_component import widgetDragDrop, widgetClick, moveLeft, moveRight, moveUp, moveDown, moveTopLeft, moveBottomLeft, moveBottomRight, moveTopRight 
+from Components.piece_move_component import widgetDragDrop, widgetClick
 from Components.chess_validation_component import ChessBoard
 from Components.speak_component import TTSThread
 from Utils.enum_helper import (
@@ -34,17 +36,17 @@ from Utils.enum_helper import (
     Speak_template,
     Game_play_mode,
     determinant,
-    bot_List,
+    coach, adaptive, beginner, intermediate, advanced, master, athletes, musicians, creators, top_players, personalities, engine,
     timeControl,
     timeControlDeterminant_Type,
     timeControlDeterminant_Speak,
+    chatbot_response,
 )
 
 import pyaudio
 import wave
 import whisper
 import torch
-
 
 import time
 
@@ -141,8 +143,12 @@ class CheckBox(QCheckBox):
             self.nextCheckState()
         super(CheckBox, self).keyPressEvent(event)
 
+# Simple Chatbot with pre-defined sentence and keywords to handle users' questions and requests
 class ChatbotWindow(QMainWindow):
-
+    """
+    This class respresent the ChatBot widget.\n
+    It contains the ChatBot interface and the functions to answer questions and handle operations.
+    """
     action_signal = pyqtSignal(str)
 
     def __init__(self):
@@ -207,17 +213,12 @@ class ChatbotWindow(QMainWindow):
 
     def get_bot_response(self, message):
         # Simple response logic
-        responses = {
-            "hello": "Hi there!",
-            "how are you": "I'm doing well, thank you for asking!",
-            "goodbye": "Goodbye! Have a great day!",
-            "how to use": "You can navigate different options by pressing Tab key or Arrows. When entered in a chess game, there are 3 input mode. Press Ctrl F for the default keyboard base interface. <> Ctrl J for Arrow mode that allow you to navagate through the board and move pieces by choosing target and destination grid using space bar. <> Ctrl S to activate voice input and press Ctrl S again to finish your input <>  There are also some shortcuts availble. You can ask me about the shortcuts if you are interested.",
-            "shortcut": "Ctrl 1 for computer mode, Ctrl 2 for online player mode. Ctrl 3 for puzzle mode."
-        }
-        action = {
-            "play with computer": "computer",
-            "play with player": "online",
-        }
+
+    # Check for matching keywords
+        for item in chatbot_response:
+            for words in item.value:
+                if(words in message):
+                    return(item.value[words])
 
         for item in timeControlDeterminant_Type:
             for words in item.value:
@@ -226,22 +227,6 @@ class ChatbotWindow(QMainWindow):
                     self.action_signal.emit(item.value[words])
                     self.hide()
                     return f"Starting a online player Game"
-
-        for key in action:
-            if key in message:
-                match action[key]:
-                    case "computer":
-                        self.action_signal.emit("computer")
-                    case "online":
-                        self.action_signal.emit("online")
-                self.hide()
-                return "Starting Game..."
-
-
-        # Check for matching keywords
-        for key in responses:
-            if key in message:
-                return responses[key]
 
         # Default response
         return "I'm not sure how to respond to that. Try to ask other questions!"
@@ -255,23 +240,162 @@ class ChatbotWindow(QMainWindow):
             intro = self.chatbotLayout[self.isInputArea].accessibleDescription()
         speak(intro)
 
+class CustomButton(QPushButton):
+    def keyPressEvent(self, event):
+        # Only ignore arrow keys for this button
+        if event.key() in [Qt.Key.Key_Up, Qt.Key.Key_Down, Qt.Key.Key_Left, Qt.Key.Key_Right]:
+            event.ignore()
+        else:
+            super().keyPressEvent(event)
+    
+
+class SettingMenu(QDialog):
+    def __init__(self, parent=None, rate=50, volume=0.7, engine=True):
+        super().__init__(parent)
+        
+        # Set window title and size
+        self.setWindowTitle("Settings")
+        # self.setGeometry(200, 200, 400, 200)
+        self.setMinimumSize(500, 500)
+        
+        # Create layout
+        layout = QVBoxLayout()
+        rate_layout = QHBoxLayout()
+        volume_layout = QHBoxLayout()
+
+        # Create checkbox
+        self.engine_value = engine
+        self.screen_reader_checkBox = QCheckBox("Enable internal speak engine")
+        self.screen_reader_checkBox.setChecked(engine)
+        self.screen_reader_checkBox.setAccessibleDescription(
+            "Tick to use internal speak engine. Untick for important information announcement only."
+        )
+        layout.addWidget(self.screen_reader_checkBox)
+        
+        # Create slider
+        self.rate_label = QLabel("Rate:")
+        self.rate_label.setMinimumWidth(100)
+
+        self.speech_rate_slider = QSlider(Qt.Orientation.Horizontal)
+        self.speech_rate_slider.setMinimum(0)
+        self.speech_rate_slider.setMaximum(100)
+        self.speech_rate_slider.setValue(rate)
+        self.speech_rate_slider.setTickPosition(QSlider.TickPosition.TicksRight)
+        self.speech_rate_slider.setTickInterval(10)
+        self.speech_rate_slider.setAccessibleName("Speech Rate")
+        self.speech_rate_slider.setAccessibleDescription("Adjust the speech rate")
+
+        self.speech_rate_value_label = QLabel()
+        self.speech_rate_value_label.setText(str(rate))
+
+        rate_layout.addWidget(self.rate_label)
+        rate_layout.addWidget(self.speech_rate_slider)
+        rate_layout.addWidget(self.speech_rate_value_label)
+
+
+        self.volume_label = QLabel("Volume:")
+        self.volume_label.setMinimumWidth(100)  # Set minimum width for consistent alignment
+
+        self.speech_volume_slider = QSlider(Qt.Orientation.Horizontal)
+        self.speech_volume_slider.setMinimum(0)
+        self.speech_volume_slider.setMaximum(100)
+        self.speech_volume_slider.setValue(volume)
+        self.speech_volume_slider.setTickPosition(QSlider.TickPosition.TicksRight)
+        self.speech_volume_slider.setTickInterval(10)
+        self.speech_volume_slider.setAccessibleName("Volume")
+        self.speech_volume_slider.setAccessibleDescription("Adjust the volume")
+
+        self.volume_value_label = QLabel()
+        self.volume_value_label.setText(str(volume))
+
+        volume_layout.addWidget(self.volume_label)
+        volume_layout.addWidget(self.speech_volume_slider)
+        volume_layout.addWidget(self.volume_value_label)
+
+        # Connect slider value change to update label
+        self.speech_rate_slider.valueChanged.connect(self.rate_changed)
+        self.speech_volume_slider.valueChanged.connect(self.volume_changed)
+        self.screen_reader_checkBox.stateChanged.connect(self.checkBoxStateChanged)
+                
+        layout.addLayout(rate_layout)
+        layout.addLayout(volume_layout)
+        
+        # Create OK button to close the dialog
+        ok_button = CustomButton("OK")
+        ok_button.setAccessibleDescription("OK button")
+        ok_button.clicked.connect(self.OK_pressed)
+        layout.addWidget(ok_button)
+
+        self.setting_layout = []
+        self.setting_layout.append(self.screen_reader_checkBox)
+        self.setting_layout.append(self.speech_rate_slider)
+        self.setting_layout.append(self.speech_volume_slider)
+        self.setting_layout.append(ok_button)
+        
+        # Set layout
+        self.setLayout(layout)
+
+        self.currentfocus = len(self.setting_layout) - 1
+
+        tab = QShortcut(QKeySequence("tab"), self)
+        tab.activated.connect(self.tabHandler)
+
+    def checkBoxStateChanged(self, state):
+        print(state)
+        if state == 2:
+            self.engine_value = True
+            speak("Turn on speak engine")
+        else:
+            self.engine_value = False
+            speak("Turn off speak engine")
+
+    def get_engine_value(self):
+        return self.engine_value
+
+    def OK_pressed(self):
+        speak("User Preference Saved")
+        self.accept()
+
+    def rate_changed(self, value):
+        speak(value)
+        self.speech_rate_value_label.setText(str(value))
+    
+    def volume_changed(self, value):
+        speak(value)
+        self.volume_value_label.setText(str(value))
+        
+    def get_rate_value(self):
+        return self.speech_rate_slider.value()
+    
+    def get_volume_value(self):
+        return self.speech_volume_slider.value() / 100.0
+    
+    def tabHandler(self, arrow=None):
+        print("tab")
+        if(arrow == "down"):
+            self.currentfocus -= 1
+            if(self.currentfocus < 0):
+                self.currentfocus = len(self.setting_layout) - 1
+        else:
+            self.currentfocus += 1
+            if(self.currentfocus > len(self.setting_layout) - 1):
+                self.currentfocus = 0
+            self.setting_layout[self.currentfocus].setFocus()
+        intro = self.setting_layout[self.currentfocus].accessibleDescription()
+        speak(intro)
+
 class RightWidget(QWidget):
     """
     This class respresent the right widget.\n
     It contains command panel , query place.
     """
 
-    def checkBoxStateChanged(self, state):
-        global internal_speak_engine
-        print(state)
-        if state == 2:
-            internal_speak_engine = True
-        else:
-            internal_speak_engine = False
-
     def __init__(self):
         super().__init__()
         global internal_speak_engine
+
+        self.chatbot_button = QPushButton("Chat Bot")
+        self.chatbot_button.setAccessibleDescription("A chat bot that answer your questions.")
 
         #login components
         self.loginButton = QPushButton("Login")
@@ -286,23 +410,22 @@ class RightWidget(QWidget):
         self.loginPassword_Input.setAccessibleDescription("The place to type in Password")
         self.loginPassword_Input.setEchoMode(QLineEdit.EchoMode.Password)
         
-        self.screen_reader_checkBox = QCheckBox("Use internal speak engine")
-        self.screen_reader_checkBox.setChecked(True)
-        self.screen_reader_checkBox.stateChanged.connect(self.checkBoxStateChanged)
-        self.screen_reader_checkBox.setAccessibleName("Use internal speak engine")
-        self.screen_reader_checkBox.setAccessibleDescription(
-            "tick to use internal speak engine"
-        )
+        self.login_button = QPushButton("Login")
+        self.login_button.setAccessibleDescription("Press to login")
+        self.login_button.setAutoDefault(True)
+
+        self.settingButton = QPushButton("Setting")
+        self.settingButton.setAccessibleDescription("Menu to change your preferences")
 
         #Computer mode components
         self.playWithComputerButton = QPushButton("Play with computer")
         self.playWithComputerButton.setText("Play with computer")
         self.playWithComputerButton.setAccessibleName("Play with computer")
         self.playWithComputerButton.setAccessibleDescription(
-            "press enter to play with computer engine"
+            "press space or enter to play with computer engine"
         )
 
-        self.playWithComputerButton_BackToSchoolButton = QPushButton("Back To School")
+        # self.playWithComputerButton_BackToSchoolButton = QPushButton("Back To School")
         self.playWithComputerButton_Coach = QPushButton("Coach")
         self.playWithComputerButton_Adaptive = QPushButton("Adaptive")
         self.playWithComputerButton_Beginner = QPushButton("Beginner")
@@ -316,11 +439,104 @@ class RightWidget(QWidget):
         self.playWithComputerButton_Personalities = QPushButton("Personalities")
         self.playWithComputerButton_Engine = QPushButton("Engine")
 
+        self.combobox_coach = QComboBox()
+        self.combobox_coach.setAccessibleDescription("Coach Combobox")
+        self.combobox_adaptive = QComboBox()
+        self.combobox_adaptive.setAccessibleDescription("Adaptive Combobox")
+        self.combobox_beginner = QComboBox()
+        self.combobox_beginner.setAccessibleDescription("Beginner Combobox")
+        self.combobox_intermediate = QComboBox()
+        self.combobox_intermediate.setAccessibleDescription("Intermediate Combobox")
+        self.combobox_advanced = QComboBox()
+        self.combobox_advanced.setAccessibleDescription("Advanced Combobox")
+        self.combobox_master = QComboBox()
+        self.combobox_master.setAccessibleDescription("Master Combobox")
+        self.combobox_athletes = QComboBox()
+        self.combobox_athletes.setAccessibleDescription("Athletes Combobox")
+        self.combobox_musicians = QComboBox()
+        self.combobox_musicians.setAccessibleDescription("Musicians Combobox")
+        self.combobox_creators = QComboBox()
+        self.combobox_creators.setAccessibleDescription("Creators Combobox")
+        self.combobox_top_players = QComboBox()
+        self.combobox_top_players.setAccessibleDescription("Top Players Combobox")
+        self.combobox_personalities = QComboBox()
+        self.combobox_personalities.setAccessibleDescription("Personalities Combobox")
+        self.combobox_engine = QComboBox()
+        self.combobox_engine.setAccessibleDescription("Engine Combobox")
+
+        self.play_button = QPushButton("Play")
+        self.play_button.setAutoDefault(True)
+
+        self.back_to_category_button = QPushButton("Back to Category")
+        self.back_to_category_button.setAutoDefault(True)
+
+        for item in coach:
+            self.combobox_coach.addItem(item.value["name"])
+            self.combobox_coach.setItemData(self.combobox_coach.count() - 1,
+                                            f"{item.value['name']}\n Rating: {item.value['rating']}",
+                                            Qt.ItemDataRole.AccessibleTextRole)
+        for item in adaptive:
+            self.combobox_adaptive.addItem(item.value["name"])
+            self.combobox_adaptive.setItemData(self.combobox_adaptive.count() - 1,
+                                            f"{item.value['name']}\n Rating: {item.value['rating']}",
+                                            Qt.ItemDataRole.AccessibleTextRole)
+        for item in beginner:
+            self.combobox_beginner.addItem(item.value["name"])
+            self.combobox_beginner.setItemData(self.combobox_beginner.count() - 1,
+                                            f"{item.value['name']}\n Rating: {item.value['rating']}",
+                                            Qt.ItemDataRole.AccessibleTextRole)
+        for item in intermediate:
+            self.combobox_intermediate.addItem(item.value["name"])
+            self.combobox_intermediate.setItemData(self.combobox_intermediate.count() - 1,
+                                            f"{item.value['name']}\n Rating: {item.value['rating']}",
+                                            Qt.ItemDataRole.AccessibleTextRole)
+        for item in advanced:
+            self.combobox_advanced.addItem(item.value["name"])
+            self.combobox_advanced.setItemData(self.combobox_advanced.count() - 1,
+                                            f"{item.value['name']}\n Rating: {item.value['rating']}",
+                                            Qt.ItemDataRole.AccessibleTextRole)
+        for item in master:
+            self.combobox_master.addItem(item.value["name"])
+            self.combobox_master.setItemData(self.combobox_master.count() - 1,
+                                            f"{item.value['name']}\n Rating: {item.value['rating']}",
+                                            Qt.ItemDataRole.AccessibleTextRole)
+        for item in athletes:
+            self.combobox_athletes.addItem(item.value["name"])
+            self.combobox_athletes.setItemData(self.combobox_athletes.count() - 1,
+                                            f"{item.value['name']}\n Rating: {item.value['rating']}",
+                                            Qt.ItemDataRole.AccessibleTextRole)
+        for item in musicians:
+            self.combobox_musicians.addItem(item.value["name"])
+            self.combobox_musicians.setItemData(self.combobox_musicians.count() - 1,
+                                            f"{item.value['name']}\n Rating: {item.value['rating']}",
+                                            Qt.ItemDataRole.AccessibleTextRole)
+        for item in creators:
+            self.combobox_creators.addItem(item.value["name"])
+            self.combobox_creators.setItemData(self.combobox_creators.count() - 1,
+                                            f"{item.value['name']}\n Rating: {item.value['rating']}",
+                                            Qt.ItemDataRole.AccessibleTextRole)
+        for item in top_players:
+            self.combobox_top_players.addItem(item.value["name"])
+            self.combobox_top_players.setItemData(self.combobox_top_players.count() - 1,
+                                            f"{item.value['name']}\n Rating: {item.value['rating']}",
+                                            Qt.ItemDataRole.AccessibleTextRole)
+        for item in personalities:
+            self.combobox_personalities.addItem(item.value["name"])
+            self.combobox_personalities.setItemData(self.combobox_personalities.count() - 1,
+                                            f"{item.value['name']}\n Rating: {item.value['rating']}",
+                                            Qt.ItemDataRole.AccessibleTextRole)
+            
+        for item in engine:
+            self.combobox_engine.addItem(item.value["name"])
+            self.combobox_engine.setItemData(self.combobox_engine.count() - 1,
+                                            f"{item.value['name']}\n Rating: {item.value['rating']}",
+                                                Qt.ItemDataRole.AccessibleTextRole)
+
         #Online mode components
         self.playWithOtherButton = QPushButton("Play with other online player")
         self.playWithOtherButton.setAccessibleName("Play with other online player")
         self.playWithOtherButton.setAccessibleDescription(
-            "press enter to play with other online player"
+            "press space or enter to play with other online player"
         )
 
         # self.playWithOther_Bullet_Button = QPushButton("Bullet")
@@ -341,6 +557,7 @@ class RightWidget(QWidget):
 
         #Puzzle mode components
         self.puzzleModeButton = QPushButton("Puzzle Mode")
+        self.puzzleModeButton.setAccessibleDescription("press space or enter to play chess puzzle")
         self.nextPuzzleButton = QPushButton("Next Puzzle")
         self.retryPuzzleButton = QPushButton("Retry Puzzle")
 
@@ -349,6 +566,7 @@ class RightWidget(QWidget):
         self.gamereviewButton = QPushButton("Game Review")
         self.returnToHomePageButton = QPushButton("Return to Home Page")
         self.returnToHomePageButton.setAccessibleDescription("Press to exit current mode")
+        self.returnToHomePageButton.setAutoDefault(True)
 
         #Analysis mode components
         self.analysisCurrentMove = QLabel()
@@ -422,12 +640,14 @@ class RightWidget(QWidget):
         self.login_menu = []
         self.login_menu.append(self.loginAccount_Input)
         self.login_menu.append(self.loginPassword_Input)
+        self.login_menu.append(self.login_button)
 
         self.setting_menu = []
         self.setting_menu.append(self.loginButton)
         self.setting_menu.append(self.playWithComputerButton)
         self.setting_menu.append(self.playWithOtherButton)
         self.setting_menu.append(self.puzzleModeButton)
+        self.setting_menu.append(self.chatbot_button)
 
         self.play_menu = []
         self.play_menu.append(self.whitePieces)
@@ -452,10 +672,37 @@ class RightWidget(QWidget):
         self.online_mode_select_menu.append(self.playWithOther_Rapid_15_10_Button)
         self.online_mode_select_menu.append(self.playWithOther_Rapid_30_0_Button)
 
+        self.bot_category_select_menu = []
+        self.bot_category_select_menu.append(self.playWithComputerButton_Coach)
+        self.bot_category_select_menu.append(self.playWithComputerButton_Adaptive)
+        self.bot_category_select_menu.append(self.playWithComputerButton_Beginner)
+        self.bot_category_select_menu.append(self.playWithComputerButton_Intermediate)
+        self.bot_category_select_menu.append(self.playWithComputerButton_Advanced)
+        self.bot_category_select_menu.append(self.playWithComputerButton_Master)
+        self.bot_category_select_menu.append(self.playWithComputerButton_Athletes)
+        self.bot_category_select_menu.append(self.playWithComputerButton_Musicians)
+        self.bot_category_select_menu.append(self.playWithComputerButton_Creators)
+        self.bot_category_select_menu.append(self.playWithComputerButton_TopPlayers)
+        self.bot_category_select_menu.append(self.playWithComputerButton_Personalities)
+        self.bot_category_select_menu.append(self.playWithComputerButton_Engine)
+
+        self.bot_combobox = []
+        self.bot_combobox.append(self.combobox_coach)
+        self.bot_combobox.append(self.combobox_adaptive)
+        self.bot_combobox.append(self.combobox_beginner)
+        self.bot_combobox.append(self.combobox_intermediate)
+        self.bot_combobox.append(self.combobox_advanced)
+        self.bot_combobox.append(self.combobox_master)
+        self.bot_combobox.append(self.combobox_athletes)
+        self.bot_combobox.append(self.combobox_musicians)
+        self.bot_combobox.append(self.combobox_creators)
+        self.bot_combobox.append(self.combobox_top_players)
+        self.bot_combobox.append(self.combobox_personalities)
+        self.bot_combobox.append(self.combobox_engine)
+
         self.game_end_menu = []
         self.game_end_menu.append(self.newgameButton)
         self.game_end_menu.append(self.gamereviewButton)
-        self.game_end_menu.append(self.returnToHomePageButton)
 
         self.puzzle_end_menu = []
         self.puzzle_end_menu.append(self.nextPuzzleButton)
@@ -482,12 +729,11 @@ class RightWidget(QWidget):
         # self.analysisButton.append(self.analysis_Explanation_Button)
         self.analysisButton.append(self.analysis_BestMove_Button)
         # self.analysisButton.append(self.analysis_CurrentMove_Button)
-        for item in self.analysisButton:
-            item.setAutoDefault(True)
 
         self.setting_layout = QVBoxLayout()
-        # self.setting_layout.addWidget(self.screen_reader_checkBox)
 
+        for item in self.analysisButton:
+            item.setAutoDefault(True)
             
         for item in self.setting_menu:
             self.setting_layout.addWidget(item)
@@ -510,10 +756,28 @@ class RightWidget(QWidget):
         
         self.online_mode_select_menu.append(self.returnToHomePageButton)
 
+        for item in self.bot_category_select_menu:
+            self.setting_layout.addWidget(item)
+            item.setAutoDefault(True)
+            item.hide()
+
+        self.bot_category_select_menu.append(self.returnToHomePageButton)        
+
+        for item in self.bot_combobox:
+            self.setting_layout.addWidget(item)
+            item.hide()
+
+        self.setting_layout.addWidget(self.play_button)
+        self.play_button.hide()
+        self.setting_layout.addWidget(self.back_to_category_button)
+        self.back_to_category_button.hide()
+
         for item in self.game_end_menu:
             self.setting_layout.addWidget(item)
             item.setAutoDefault(True)
             item.hide()
+
+        self.game_end_menu.append(self.returnToHomePageButton)
 
         for item in self.puzzle_end_menu:
             self.setting_layout.addWidget(item)
@@ -527,6 +791,18 @@ class RightWidget(QWidget):
             item.hide()
 
         self.analysis_menu.append(self.returnToHomePageButton)
+
+        self.setting_layout.addWidget(self.returnToHomePageButton)
+        self.returnToHomePageButton.hide()
+
+        self.setting_layout.addWidget(self.settingButton) #setting button
+        self.setting_menu.append(self.settingButton)
+        self.online_mode_select_menu.append(self.settingButton)
+        self.play_menu.append(self.settingButton)
+        self.analysis_menu.append(self.settingButton)
+        
+        self.settingButton.setAutoDefault(True)
+        self.settingButton.show()
 
         self.setLayout(self.setting_layout)
 
@@ -593,6 +869,8 @@ class MainWindow(QMainWindow):
                 self.rightWidget.setting_layout.removeWidget(self.rightWidget.loginButton)
                 self.rightWidget.setting_menu.remove(self.rightWidget.loginButton)
                 self.rightWidget.loginButton.hide()
+            self.currentFocus = len(self.rightWidget.setting_menu) - 1
+            self.rightWidget.loginButton.setFocus()
 
         jsCode = """
             function checkLogin() {{
@@ -630,16 +908,15 @@ class MainWindow(QMainWindow):
         speak("trying to login")
         QTimer.singleShot(3000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.loginSuccess, checkLogin))
 
-
-
     ##change the application flow status and re-init / clean the variable
     def change_main_flow_status(self, status):
         print("change status", status)
         match status:
             case Bot_flow_status.login_status:
+                speak("Activate Login Phase")
                 self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/login"))
                 self.main_flow_status = Bot_flow_status.login_status
-                self.currentFocus = len(self.rightWidget.login_menu)
+                self.currentFocus = len(self.rightWidget.login_menu) - 1
                 for item in self.rightWidget.setting_menu:
                     item.hide()
                 for item in self.rightWidget.login_menu:
@@ -666,34 +943,40 @@ class MainWindow(QMainWindow):
                 self.rightWidget.colorBox.setText("Assigned Color: ")
                 self.userColor = None
                 self.opponentColor = None
+                self.category_combobox = None
+                self.bot_retry = False
                 self.rightWidget.right_layout = self.rightWidget.setting_layout
                 self.rightWidget.opponentBox.setText("Opponent move: \n")
-                for i in range(8):
-                    for j in range(8):
-                        if(isinstance(self.leftWidget.grids[i][j], QLabel)):
-                            self.leftWidget.grids[i][j].deleteLater()
+                try:
+                    for i in range(8):
+                        for j in range(8):
+                            if(isinstance(self.leftWidget.grids[i][j], QLabel)):
+                                self.leftWidget.grids[i][j].deleteLater()
+                except:
+                    print("No grids need to delete")
                 for item in range(self.rightWidget.setting_layout.count()):
                     self.rightWidget.setting_layout.itemAt(item).widget().hide()
                 for item in self.rightWidget.setting_menu:
-                    item.show()
-                self.rightWidget.playWithComputerButton.setFocus()
-                self.currentFocus = len(self.rightWidget.setting_menu)
-                # self.leftWidget.grids = dict()
+                    item.show() 
+                self.currentFocus = len(self.rightWidget.setting_menu) - 1
                 return
                 
             case Bot_flow_status.select_status:
                 self.main_flow_status = Bot_flow_status.select_status
                 self.game_flow_status = Game_flow_status.not_start
-                self.currentFocus = len(self.rightWidget.online_mode_select_menu)
                 for item in self.rightWidget.setting_menu:
                     item.hide()
                 match self.game_play_mode:
                     case Game_play_mode.computer_mode:
-                        self.default_bot()
+                        self.currentFocus = len(self.rightWidget.bot_category_select_menu)
+                        for item in self.rightWidget.bot_category_select_menu:
+                            item.show()
+                        self.leftWidget.chessWebView.page().runJavaScript(js_function.open_bot_menu)
+                        speak("Select bot category")
                     case Game_play_mode.online_mode:
+                        self.currentFocus = len(self.rightWidget.online_mode_select_menu) - 1
                         for item in self.rightWidget.online_mode_select_menu:
                             item.show()
-                        self.rightWidget.playWithOther_Bullet_1_0_Button.setFocus()
                         speak("Select Time Controls")
                 return
 
@@ -721,7 +1004,7 @@ class MainWindow(QMainWindow):
             case Bot_flow_status.game_play_status:
                 self.check_game_end_timer.start(2000)
                 self.rightWidget.commandPanel.setFocus()
-                self.currentFocus = len(self.rightWidget.play_menu)
+                self.currentFocus = len(self.rightWidget.play_menu) - 1
                 self.main_flow_status = Bot_flow_status.game_play_status
                 return
             
@@ -741,8 +1024,7 @@ class MainWindow(QMainWindow):
                     self.rightWidget.setting_layout.itemAt(item).widget().hide()
                 for item in self.rightWidget.game_end_menu:
                     item.show()
-                self.rightWidget.newgameButton.setFocus()
-                self.currentFocus = len(self.rightWidget.game_end_menu)
+                self.currentFocus = len(self.rightWidget.game_end_menu) - 1
                 self.main_flow_status = Bot_flow_status.game_end_status
 
             case Bot_flow_status.puzzle_end_status:
@@ -753,15 +1035,15 @@ class MainWindow(QMainWindow):
                     self.rightWidget.setting_layout.itemAt(item).widget().hide()
                 for item in self.rightWidget.puzzle_end_menu:
                     item.show()
-                self.currentFocus = 0
-                self.rightWidget.nextPuzzleButton.setFocus()
-            
+                self.currentFocus = len(self.rightWidget.puzzle_end_menu)
+
+    ##change the application game mode
     def change_game_mode(self, mode):
         match mode:
             case None:
                 self.game_play_mode = None
             case Game_play_mode.analysis_mode:
-                self.currentFocus = len(self.rightWidget.analysis_menu)
+                self.currentFocus = len(self.rightWidget.analysis_menu) - 1
                 self.game_play_mode = Game_play_mode.analysis_mode
                 for item in range(self.rightWidget.setting_layout.count()):
                     self.rightWidget.setting_layout.itemAt(item).widget().hide()
@@ -780,7 +1062,6 @@ class MainWindow(QMainWindow):
             speak("Please resign before start a new game", True)
             return
         print("computer mode selected")
-        self.change_main_flow_status(Bot_flow_status.board_init_status)
         self.game_play_mode = Game_play_mode.computer_mode
         speak(
             "computer engine mode <>" + Speak_template.initialize_game_sentense.value,
@@ -789,30 +1070,8 @@ class MainWindow(QMainWindow):
         self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(4000, self.checkExistGame))
 
         self.leftWidget.chessWebView.load(
-            QUrl("https://www.chess.com/play/computer/komodo1")
+            QUrl("https://www.chess.com/play/computer")
         )
-
-    def default_bot(self):
-        def clickNCapture():
-            if not self.main_flow_status == Bot_flow_status.game_play_status:
-                self.getColor()
-                self.initBoard()
-                self.getBoard()
-        
-        if self.userLoginName != None:
-            self.clickWebButton(
-                [("button", "start"), ("button", "choose"), ("button", "play")],
-                0,
-                clickNCapture,
-                0,
-            )
-        else:
-            self.clickWebButton(
-                [("button", "start"), ("button", "choose"), ("button", "play")],
-                0,
-                clickNCapture,
-                0,
-            )
 
     ##initialize a vs online player game for user
     def playWithOtherButtonHandler(self):  ###url
@@ -842,8 +1101,9 @@ class MainWindow(QMainWindow):
             for selection in timeControlDeterminant_Type:
                 if input in selection.value:
                     self.online_select_timeControl(selection.value[input])
-        
-    def online_select_timeControl(self, timeControl):
+    
+    # handle select timecontrol
+    def online_select_timeControl(self, timeControl, skip=False):
         def clickNCapture(x):
             def test(clocks):
                 if clocks == None or clocks[0] == clocks[1]:
@@ -861,6 +1121,9 @@ class MainWindow(QMainWindow):
 
         print(f"timeControl = {timeControl}")
         self.timeControl = timeControl
+
+        if(skip):
+            self.leftWidget.chessWebView.loadFinished.disconnect()
         
         for item in self.rightWidget.online_mode_select_menu:
             item.hide()
@@ -874,52 +1137,135 @@ class MainWindow(QMainWindow):
             print("No login")
             self.leftWidget.chessWebView.page().runJavaScript(js_function.clickTimeControlButton + f"clickTimeControlButton('{timeControl}', false)", clickNCapture)
 
+    #handle select bot
+    def select_bot(self):
+        def callback1(x):
+            print("select bot")
+            if(self.bot_retry):
+                QTimer.singleShot(1000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.select_bot + f"select_bot('{self.category_combobox.currentText()}');"))
+                QTimer.singleShot(2000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.check_bot_locked, callback2))
+                return
+            QTimer.singleShot(1000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.check_bot_locked, callback2))
+
+        def callback2(locked):
+            print(f"locked = {locked}")
+            if(locked):
+                # self.leftWidget.chessWebView.load(
+                #     QUrl("https://www.chess.com/play/computer")
+                # )
+                speak("The bot is locked for guest or non-premium account. Please select another bot.")
+                self.bot_retry = True
+            else:
+                self.category_combobox.hide()
+                self.rightWidget.play_button.hide()
+                self.rightWidget.back_to_category_button.hide()
+                for item in self.rightWidget.play_menu:
+                    item.show()
+                board()
+                speak("Bot game Started")
+
+        def board():
+            self.getColor()
+            self.initBoard()
+            self.getBoard()
+
+        print(f"Bot: {self.category_combobox.currentText()}")
+        if(self.category_combobox == self.rightWidget.combobox_engine):
+            level = self.category_combobox.currentText().split()[1]
+            print(level)
+            self.leftWidget.chessWebView.page().runJavaScript(js_function.select_engine_level + f"select_engine_level('{level}');", callback1)
+            return
+        
+        self.leftWidget.chessWebView.page().runJavaScript(js_function.select_bot + f"select_bot('{self.category_combobox.currentText()}');", callback1)
+
+    #handle select bot category
+    def bot_select_category(self, category):
+        for item in self.rightWidget.bot_category_select_menu:
+            item.hide()
+        match category:
+            case "coach":
+                self.category_combobox = self.rightWidget.combobox_coach
+            case "adaptive":
+                self.category_combobox = self.rightWidget.combobox_adaptive
+            case "beginner":
+                self.category_combobox = self.rightWidget.combobox_beginner
+            case "intermediate":
+                self.category_combobox = self.rightWidget.combobox_intermediate
+            case "advanced":
+                self.category_combobox = self.rightWidget.combobox_advanced
+            case "master":
+                self.category_combobox = self.rightWidget.combobox_master
+            case "athletes":
+                self.category_combobox = self.rightWidget.combobox_athletes
+            case "musicians":
+                self.category_combobox = self.rightWidget.combobox_musicians
+            case "creators":
+                self.category_combobox = self.rightWidget.combobox_creators
+            case "top_players":
+                self.category_combobox = self.rightWidget.combobox_top_players
+            case "personalities":
+                self.category_combobox = self.rightWidget.combobox_personalities
+            case "engine":
+                self.category_combobox = self.rightWidget.combobox_engine
+        self.category_combobox.show()
+        self.rightWidget.play_button.show()
+        self.rightWidget.back_to_category_button.show()
+        self.currentFocus = 3
+        speak("Please first select the bot you want to play, then click play to start")
+
+    #function for return to category selection
+    def back_to_category(self):
+        print("Return to Category")
+        self.category_combobox.hide()
+        self.rightWidget.play_button.hide()
+        self.rightWidget.back_to_category_button.hide()
+        for item in self.rightWidget.bot_category_select_menu:
+            item.show()
+        self.category_combobox = None
+        self.currentFocus = len(self.rightWidget.bot_category_select_menu)
+
+    #function to speak out selected bot
+    def bot_information(self, index, select=False):
+        print(index)
+        if(select):
+            print(index)
+            print(f"{self.category_combobox.currentText()} is selected")
+            speak(f"{self.category_combobox.currentText()} is selected")
+            return
+        # index = self.category_combobox.currentIndex()
+        intro = self.category_combobox.itemData(index, Qt.ItemDataRole.AccessibleTextRole)
+        speak(intro)
+
+    #function to check whether unfinished game exist
     def checkExistGame(self):
         def callback(moveList):
             print(f"movemovmeomvomeovmo = {moveList}")
             if(moveList):
-                # def callback1(finished):
-                #     if(not finished):
-                #         print("HELLO")
-                #         QTimer.singleShot(300, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.clickPGN, callback1))
-                #     else:
-                #        QTimer.singleShot(300, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.getFEN, getResult))
-
-                # def getResult(FEN):
-                #     if(FEN == None):
-                #         QTimer.singleShot(300, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.getFEN, getResult))
-                #     else:
-                #         self.FenNotation = FEN
-                #         self.getBoard(self.FenNotation)
-                #         self.change_main_flow_status(Bot_flow_status.game_play_status)
-                #         print(f"self.FenNotation = {self.FenNotation}")
-
                 self.change_main_flow_status(Bot_flow_status.board_init_status)
-                self.getColor()
+                self.getColor(exist_game="Existing Game Founded. ")
                 self.initBoard()
-                # if(self.game_play_mode == Game_play_mode.computer_mode):
-                #     self.leftWidget.chessWebView.page().runJavaScript(js_function.clickShare, callback1)
-                # else:
                 print("reconstructing the board")
                 self.getBoard()
 
                 for move in moveList:
                     print(self.moveList_element)
+                    if(self.moveList_element % 10 == 0 and self.moveList_element != 0):
+                        self.moveListString += "\n"
                     if (self.moveList_element % 2 == 0):
                         self.moveListString += str(self.moveList_line) + ". " + self.chessBoard.board_object.parse_san(move).uci() + ", "
                     else:
                         self.moveListString += self.chessBoard.board_object.parse_san(move).uci() + ", "
                         self.moveList_line += 1
-                    if(self.moveList_element % 10 == 0 and self.moveList_element != 0):
-                        self.moveListString += "\n"
                     self.moveList_element += 1
+                    if(self.moveList_element == len(moveList)):
+                        self.rightWidget.opponentBox.setText(f"opponent last move: {self.chessBoard.board_object.parse_san(move).uci()}")
                     self.chessBoard.board_object.push_san(move)
                 self.rightWidget.moveList.setText("Move List:\n" + self.moveListString)
         
                 print(self.chessBoard.board_object)
                 self.previous_game_exist = True
                 turn = "WHITE" if(self.moveList_element %2==0) else "BLACK"
-                print(turn)
+                print(f"current turn: {turn}")
                 self.game_flow_status = Game_flow_status.user_turn if(turn==self.userColor) else Game_flow_status.opponent_turn
                 print("Existing Game Founded")
                 self.change_main_flow_status(Bot_flow_status.game_play_status)      
@@ -1043,7 +1389,7 @@ class MainWindow(QMainWindow):
             print(self.whiteLoc)
             print(self.blackLoc)
             self.rightWidget.commandPanel.setFocus()
-            self.currentFocus = len(self.rightWidget.play_menu)
+            self.currentFocus = len(self.rightWidget.play_menu) - 1
             self.main_flow_status = Bot_flow_status.game_play_status
             self.game_play_mode = Game_play_mode.puzzle_mode
             self.chessBoard = ChessBoard(self.FenNotation)
@@ -1100,74 +1446,6 @@ class MainWindow(QMainWindow):
         self.leftWidget.chessWebView.page().runJavaScript(js_function.puzzle_mode_GetOpponentMove, callback)
 
     def puzzle_movePiece(self, move):
-        # def checkSuccess(success):
-        #     if(success):
-        #         print("Move successfully")
-        #         self.game_flow_status = Game_flow_status.opponent_turn
-        #     else:
-        #         self.chessBoard.board_object.pop()
-        #         print("Move not success, please do not move your mouse while moving pieces.")
-
-        # def callback(pos):
-        #     print(pos)
-        #     x = pos[0]
-        #     y = pos[1]
-        #     interval = pos[2]
-        #     if self.userColor=="WHITE":
-        #         if(dest[0]>src[0] and dest[1]==src[1]):    
-        #             moveRight(x, y, x_scale, interval)
-        #         elif(dest[0]<src[0] and dest[1]==src[1]):
-        #             moveLeft(x, y, x_scale, interval)
-        #         elif(dest[0]==src[0] and dest[1]>src[1]):
-        #             moveUp(x, y, y_scale, interval)
-        #         elif(dest[0]==src[0] and dest[1]<src[1]):
-        #             moveDown(x, y, y_scale, interval)
-        #         elif(dest[0]>src[0] and dest[1]>src[1]):
-        #             moveTopRight(x, y, x_scale, y_scale, interval)
-        #         elif(dest[0]>src[0] and dest[1]<src[1]):
-        #             moveBottomRight(x, y, x_scale, y_scale, interval)
-        #         elif(dest[0]<src[0] and dest[1]>src[1]):
-        #             moveTopLeft(x, y, x_scale, y_scale, interval)
-        #         elif(dest[0]<src[0] and dest[1]<src[1]):
-        #             moveBottomLeft(x, y, x_scale, y_scale, interval)
-        #     else:
-        #         if(dest[0]<src[0] and dest[1]==src[1]):    
-        #             moveRight(x, y, x_scale, interval)
-        #         elif(dest[0]>src[0] and dest[1]==src[1]):
-        #             moveLeft(x, y, x_scale, interval)
-        #         elif(dest[0]==src[0] and dest[1]<src[1]):
-        #             moveUp(x, y, y_scale, interval)
-        #         elif(dest[0]==src[0] and dest[1]>src[1]):
-        #             moveDown(x, y, y_scale, interval)
-        #         elif(dest[0]<src[0] and dest[1]<src[1]):
-        #             moveTopRight(x, y, x_scale, y_scale, interval)
-        #         elif(dest[0]<src[0] and dest[1]>src[1]):
-        #             moveBottomRight(x, y, x_scale, y_scale, interval)
-        #         elif(dest[0]>src[0] and dest[1]<src[1]):
-        #             moveTopLeft(x, y, x_scale, y_scale, interval)
-        #         elif(dest[0]>src[0] and dest[1]>src[1]):
-        #             moveBottomLeft(x, y, x_scale, y_scale, interval)
-            # QTimer.singleShot(1000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.checkMoveSuccess + f"checkMoveSuccess({loc})", checkSuccess))
-                
-
-        # movePair = self.chessBoard.moveWithValidate(move)
-        # if(movePair == "Illegal move" or movePair == "Invalid move"):
-        #     print(movePair)
-        #     return
-        # uci_string = ""
-        # screen = self.screen().geometry()
-        # left = screen.left()
-        # top = screen.top()
-        # print(screen)
-        # if(len(movePair)==2):
-        #     uci_string = movePair[0]
-        # if(len(uci_string)==4):
-        #     src = uci_string[:2].lower()
-        #     dest = uci_string[2:4].lower()
-        # loc = CHESSBOARD_LOCATION_CONVERSION[src[0]] + src[1]
-        # x_scale = abs(ord(dest[0])-ord(src[0]))
-        # y_scale = abs(int(dest[1])-int(src[1]))
-        # self.leftWidget.chessWebView.page().runJavaScript(js_function.getCoordinate + f"getCoordinate({loc}, {left}, {top})", callback)
         movePair = self.chessBoard.moveWithValidate(move)
         print(self.chessBoard.board_object)
         san_string = ""
@@ -1225,9 +1503,6 @@ class MainWindow(QMainWindow):
             dest_col = int(CHESSBOARD_LOCATION_CONVERSION[uci_string[2].lower()]) - 1
             dest_row = int(uci_string[3]) - 1
             dest = uci_string[2:4]
-            target_type = PIECE_TYPE_CONVERSION.get(
-                self.chessBoard.check_grid(dest).__str__().lower()
-            )
             # dlg = confirmMoveDialog(target_type, dest)
             dlg = confirmDialog(human_string)
             if dlg.exec():
@@ -1491,6 +1766,7 @@ class MainWindow(QMainWindow):
             self.rightWidget.check_position.clear()
             return
 
+    #focus on grid or keyboard-based interface
     def focus_back(self):
             if self.input_mode == Input_mode.arrow_mode:
                 self.leftWidget.grids[self.col][self.row].setFocus()
@@ -1747,7 +2023,7 @@ class MainWindow(QMainWindow):
         check_win = self.chessBoard.detect_win()
         if not check_win == "No win detected.":  ##check user wins
             print(check_win)
-            speak(check_win)
+            speak(check_win, announce=True)
             self.game_flow_status = Game_flow_status.game_end
             self.change_main_flow_status(Bot_flow_status.setting_status)
             self.getOpponentMoveTimer.stop()
@@ -1765,7 +2041,7 @@ class MainWindow(QMainWindow):
                     self.change_main_flow_status(Bot_flow_status.setting_status)
                     self.getOpponentMoveTimer.stop()
                     self.getScoreTimer.start(1000)
-                    speak(crawl_result, True)
+                    speak(crawl_result, True, announce=True)
                     return True
                 else:
                     return False
@@ -1784,13 +2060,14 @@ class MainWindow(QMainWindow):
                 speak(
                     human_string,
                     importance=True,
+                    announce=True,
                 )
                 self.rightWidget.opponentBox.setText(
                     "Opponent move: \n" + human_string
                 )
                 self.game_flow_status = Game_flow_status.user_turn
                 if not check_win == "No win detected.":
-                    speak(check_win, True)
+                    speak(check_win, True, announce=True)
                     self.game_flow_status = Game_flow_status.game_end
                     self.change_main_flow_status(Bot_flow_status.setting_status)
                     self.getOpponentMoveTimer.stop()
@@ -1800,13 +2077,13 @@ class MainWindow(QMainWindow):
                     self.change_main_flow_status(Bot_flow_status.setting_status)
                     self.getOpponentMoveTimer.stop()
                     self.getScoreTimer.start(1000)
-                    speak(crawl_result, True)
+                    speak(crawl_result, True, announce=True)
                 return True
         
         return False
 
     ##Check whether opponent resigned
-    def check_game_end(self):
+    def check_game_end(self):   
         def callback(result):
             if result:
                 self.game_flow_status = Game_flow_status.game_end
@@ -1814,7 +2091,7 @@ class MainWindow(QMainWindow):
                 self.getScoreTimer.start(1000)
                 self.getOpponentMoveTimer.stop()
                 print(result)
-                speak(result)
+                speak(result, announce=True)
 
         if(self.game_play_mode == Game_play_mode.computer_mode):
             self.leftWidget.chessWebView.page().runJavaScript(js_function.checkGameEnd + 'checkGameEnd("computer");', callback)
@@ -1924,7 +2201,7 @@ class MainWindow(QMainWindow):
             )
         return self.leftWidget.chessWebView.page().runJavaScript(jsCode, next_click)
 
-    ##assign square after detect the web view chessboard and color
+    ##initialize mirror chessboard
     def getBoard(self, *args):
         self.chessBoard = ChessBoard(args[0]) if(args) else ChessBoard()
         self.change_main_flow_status(Bot_flow_status.game_play_status)
@@ -1938,9 +2215,9 @@ class MainWindow(QMainWindow):
                 else:
                     self.leftWidget.grids[i][j].hide()
 
-    ##computer vision to detect the chessboard
+    ##JS to detect the assigned color
         
-    def getColor(self):
+    def getColor(self, exist_game = ""):
         def callback(color):
             print(color)
             self.userColor = color
@@ -1949,18 +2226,19 @@ class MainWindow(QMainWindow):
                 self.opponentColor = "WHITE"
                 self.row, self.col = 7, 7
                 self.currentPos = 'h8'
-                speak(Speak_template.user_black_side_sentense.value)
+                speak(exist_game + Speak_template.user_black_side_sentense.value)
                 self.game_flow_status = Game_flow_status.opponent_turn
                 self.getOpponentMoveTimer.start(1000)
             else:
                 self.opponentColor = "BLACK"
                 self.row, self.col = 0, 0
                 self.currentPos = 'a1'
-                speak(Speak_template.user_white_side_sentense.value)
+                speak(exist_game + Speak_template.user_white_side_sentense.value)
                 self.game_flow_status = Game_flow_status.user_turn
 
         self.leftWidget.chessWebView.page().runJavaScript(js_function.getColor, callback)
 
+    #JS to detect grid position and assign label reference
     def initBoard(self):
         def callback(coor):
             print(coor)
@@ -1974,7 +2252,7 @@ class MainWindow(QMainWindow):
                         label = QLabel(self)
                         label.setGeometry(int(x + col*dist), int(y - row*dist), int(dist*0.5), int(dist*0.5))
                         pos = list(CHESSBOARD_LOCATION_CONVERSION.keys())[list(CHESSBOARD_LOCATION_CONVERSION.values()).index(str(col+1))] + str(row+1)
-                        # label.setText(pos)
+                        # label.setText("  " + pos)
                         label.setAccessibleName(pos)
                         label.hide()
                         self.leftWidget.grids[col][row] = label
@@ -1984,7 +2262,7 @@ class MainWindow(QMainWindow):
                         label = QLabel(self)
                         label.setGeometry(int(x + (7-col)*dist), int(y - (7-row)*dist), int(dist*0.5), int(dist*0.5))
                         pos = list(CHESSBOARD_LOCATION_CONVERSION.keys())[list(CHESSBOARD_LOCATION_CONVERSION.values()).index(str(col+1))] + str(row+1)
-                        # label.setText(pos)
+                        # label.setText("  " + pos)
                         label.setAccessibleName(pos)
                         label.hide()
                         self.leftWidget.grids[col][row] = label
@@ -1999,7 +2277,7 @@ class MainWindow(QMainWindow):
         speak("command mode <> you can type your move here")
         self.arrow_mode_switch(False)
         self.input_mode = Input_mode.command_mode
-        self.currentFocus = len(self.rightWidget.play_menu)
+        self.currentFocus = len(self.rightWidget.play_menu) - 1
         self.rightWidget.commandPanel.setFocus()
 
     ##switch to arrow mode, only allowd when game started
@@ -2062,6 +2340,7 @@ class MainWindow(QMainWindow):
         self.currentPos = list(CHESSBOARD_LOCATION_CONVERSION.keys())[list(CHESSBOARD_LOCATION_CONVERSION.values()).index(str(self.col+1))] + str(self.row+1)
         piece = self.chessBoard.check_grid(self.currentPos).__str__()
         if piece == "None":
+            self.leftWidget.grids[self.col][self.row].setAccessibleName(self.currentPos)
             speak("{0}".format(self.currentPos))
             return
         else:
@@ -2071,6 +2350,7 @@ class MainWindow(QMainWindow):
                 color,
                 PIECE_TYPE_CONVERSION.get(piece.lower()),
             )
+            self.leftWidget.grids[self.col][self.row].setAccessibleName(piece_square_text)
             print(piece_square_text)
             speak(piece_square_text)
 
@@ -2135,9 +2415,15 @@ class MainWindow(QMainWindow):
                         self.currentFocus = self.currentFocus + 1
 
             unhidden_widgets[self.currentFocus].setFocus()
-            intro = unhidden_widgets[self.currentFocus].text()
-            if intro == "":
-                intro = unhidden_widgets[self.currentFocus].accessibleDescription()
+            try:
+                intro = unhidden_widgets[self.currentFocus].text()
+                if intro == "":
+                    intro = unhidden_widgets[self.currentFocus].accessibleDescription()
+            except:
+                index = unhidden_widgets[self.currentFocus].currentIndex()
+                intro = "Current Bot: " + unhidden_widgets[self.currentFocus].itemData(index, Qt.ItemDataRole.AccessibleTextRole)
+                # intro = unhidden_widgets[self.currentFocus].currentText()
+            
             speak(intro)
                         
         else:
@@ -2231,8 +2517,17 @@ class MainWindow(QMainWindow):
         self.rightWidget.moveList.setText("Move List:\n" + self.moveListString)
 
     def __init__(self, *args, **kwargs):
+
+        self.settings = QSettings('ChessBot', 'config')
+        print(self.settings.fileName())
+
+
+        print(f"rate: {speak_thread.rate}")
+        print(f"volume: {speak_thread.volume}")
         
         global previous_sentence
+        
+        self.restoreConfig()
 
         self.alphabet = ["A", "B", "C", "D", "E", "F", "G", "H"]
         self.number = ["1", "2", "3", "4", "5", "6", "7", "8"]
@@ -2247,6 +2542,8 @@ class MainWindow(QMainWindow):
         self.whiteLoc = []
         self.blackLoc = []
         self.timeControl = ""
+        self.category_combobox = None
+        self.bot_retry = False
 
         super(MainWindow, self).__init__(*args, **kwargs)
 
@@ -2307,14 +2604,8 @@ class MainWindow(QMainWindow):
         shortcut_O = QShortcut(QKeySequence("Ctrl+O"), self)
         shortcut_O.activated.connect(self.helper_menu)
 
-        shortcut_ctrlq = QShortcut(QKeySequence("Ctrl+Q"), self)
-        shortcut_ctrlq.activated.connect(self.voice_helper_menu)
-
-        shortcut_x = QShortcut(QKeySequence("x"), self)
-        shortcut_x.activated.connect(lambda: print(f"current game flow status: {self.game_flow_status}"))
-
-        shortcut_c = QShortcut(QKeySequence("c"), self)
-        shortcut_c.activated.connect(lambda: print(f"current main flow status: {self.main_flow_status}"))
+        shortcut_ctrlp = QShortcut(QKeySequence("Ctrl+P"), self)
+        shortcut_ctrlp.activated.connect(self.voice_helper_menu)
 
         self.shortcut_A = QShortcut(QKeySequence("a"), self)
         self.shortcut_A.activated.connect(self.analysisModeHandler)
@@ -2362,6 +2653,9 @@ class MainWindow(QMainWindow):
 
         self.analysis_mode_switch(False)
 
+        shortcut_q = QShortcut(QKeySequence("Ctrl+Q"), self)
+        shortcut_q.activated.connect(self.chatbot)
+
         ##initialize flow status
         self.main_flow_status = Bot_flow_status.setting_status
         self.game_flow_status = Game_flow_status.not_start
@@ -2373,9 +2667,6 @@ class MainWindow(QMainWindow):
         self.leftWidget = LeftWidget()
         self.rightWidget = RightWidget()
         self.chatbotWidget = ChatbotWindow()
-
-        shortcut_w = QShortcut(QKeySequence("w"), self)
-        shortcut_w.activated.connect(self.chatbot)
 
         def timeCallback(clocks):
             if not clocks == None:
@@ -2413,6 +2704,8 @@ class MainWindow(QMainWindow):
 
         self.rightWidget.loginButton.clicked.connect(lambda: self.change_main_flow_status(Bot_flow_status.login_status))
 
+        self.rightWidget.chatbot_button.clicked.connect(self.chatbot)
+
         self.rightWidget.commandPanel.returnPressed.connect(self.CommandPanelHandler)
         self.rightWidget.check_position.returnPressed.connect(
             self.check_position_handler
@@ -2420,6 +2713,7 @@ class MainWindow(QMainWindow):
 
         self.rightWidget.loginAccount_Input.returnPressed.connect(self.loginHandler)
         self.rightWidget.loginPassword_Input.returnPressed.connect(self.loginHandler)
+        self.rightWidget.login_button.pressed.connect(self.loginHandler)
 
         self.rightWidget.selectPanel.returnPressed.connect(self.selectPanelHandler)
 
@@ -2427,7 +2721,7 @@ class MainWindow(QMainWindow):
 
         self.leftWidget.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
-        self.   getScoreTimer = QTimer()
+        self.getScoreTimer = QTimer()
         self.getScoreTimer.timeout.connect(self.check_score)
 
         self.getOpponentMoveTimer = QTimer()
@@ -2451,9 +2745,11 @@ class MainWindow(QMainWindow):
         self.opponentColor = None
         ##need to modify /Users/longlong/miniforge3/envs/fyp/lib/python3.12/site-packages/pyttsx3/drivers/nsss.py
         ## import objc and self.super
-        self.rightWidget.playWithComputerButton.setFocus()
+        # self.rightWidget.playWithComputerButton.setFocus()
         self.currentFocus = 0
         # self.show_information_box()
+
+        self.rightWidget.settingButton.clicked.connect(self.openSettingMenu)
 
         self.rightWidget.playWithOther_Bullet_1_0_Button.clicked.connect(lambda: self.online_select_timeControl(timeControl.timeControl_1_0.value))
         self.rightWidget.playWithOther_Bullet_1_1_Button.clicked.connect(lambda: self.online_select_timeControl(timeControl.timeControl_1_1.value))
@@ -2467,7 +2763,59 @@ class MainWindow(QMainWindow):
         self.rightWidget.playWithOther_Rapid_15_10_Button.clicked.connect(lambda: self.online_select_timeControl(timeControl.timeControl_15_10.value))
         self.rightWidget.playWithOther_Rapid_30_0_Button.clicked.connect(lambda: self.online_select_timeControl(timeControl.timeControl_30_0.value))
 
-        #analysis mode button connection
+## bot category
+        self.rightWidget.playWithComputerButton_Coach.clicked.connect(lambda: self.bot_select_category("coach"))
+        self.rightWidget.playWithComputerButton_Adaptive.clicked.connect(lambda: self.bot_select_category("adaptive"))
+        self.rightWidget.playWithComputerButton_Beginner.clicked.connect(lambda: self.bot_select_category("beginner"))
+        self.rightWidget.playWithComputerButton_Intermediate.clicked.connect(lambda: self.bot_select_category("intermediate"))
+        self.rightWidget.playWithComputerButton_Advanced.clicked.connect(lambda: self.bot_select_category("advanced"))
+        self.rightWidget.playWithComputerButton_Master.clicked.connect(lambda: self.bot_select_category("master"))
+        self.rightWidget.playWithComputerButton_Athletes.clicked.connect(lambda: self.bot_select_category("athletes"))
+        self.rightWidget.playWithComputerButton_Musicians.clicked.connect(lambda: self.bot_select_category("musicians"))
+        self.rightWidget.playWithComputerButton_Creators.clicked.connect(lambda: self.bot_select_category("creators"))
+        self.rightWidget.playWithComputerButton_TopPlayers.clicked.connect(lambda: self.bot_select_category("top_players"))
+        self.rightWidget.playWithComputerButton_Personalities.clicked.connect(lambda: self.bot_select_category("personalities"))
+        self.rightWidget.playWithComputerButton_Engine.clicked.connect(lambda: self.bot_select_category("engine"))
+        self.rightWidget.back_to_category_button.clicked.connect(self.back_to_category)
+        self.rightWidget.play_button.clicked.connect(self.select_bot)
+
+        self.rightWidget.combobox_coach.currentIndexChanged.connect(lambda index: self.bot_information(index, select=True))
+        self.rightWidget.combobox_coach.highlighted.connect(self.bot_information)
+
+        self.rightWidget.combobox_adaptive.currentIndexChanged.connect(lambda index: self.bot_information(index, select=True))
+        self.rightWidget.combobox_adaptive.highlighted.connect(self.bot_information)
+
+        self.rightWidget.combobox_beginner.currentIndexChanged.connect(lambda index: self.bot_information(index, select=True))
+        self.rightWidget.combobox_beginner.highlighted.connect(self.bot_information)
+
+        self.rightWidget.combobox_intermediate.currentIndexChanged.connect(lambda index: self.bot_information(index, select=True))
+        self.rightWidget.combobox_intermediate.highlighted.connect(self.bot_information)
+
+        self.rightWidget.combobox_advanced.currentIndexChanged.connect(lambda index: self.bot_information(index, select=True))
+        self.rightWidget.combobox_advanced.highlighted.connect(self.bot_information)
+
+        self.rightWidget.combobox_master.currentIndexChanged.connect(lambda index: self.bot_information(index, select=True))
+        self.rightWidget.combobox_master.highlighted.connect(self.bot_information)
+
+        self.rightWidget.combobox_athletes.currentIndexChanged.connect(lambda index: self.bot_information(index, select=True))
+        self.rightWidget.combobox_athletes.highlighted.connect(self.bot_information)
+
+        self.rightWidget.combobox_musicians.currentIndexChanged.connect(lambda index: self.bot_information(index, select=True))
+        self.rightWidget.combobox_musicians.highlighted.connect(self.bot_information)
+
+        self.rightWidget.combobox_creators.currentIndexChanged.connect(lambda index: self.bot_information(index, select=True))
+        self.rightWidget.combobox_creators.highlighted.connect(self.bot_information)
+
+        self.rightWidget.combobox_top_players.currentIndexChanged.connect(lambda index: self.bot_information(index, select=True))
+        self.rightWidget.combobox_top_players.highlighted.connect(self.bot_information)
+
+        self.rightWidget.combobox_personalities.currentIndexChanged.connect(lambda index: self.bot_information(index, select=True))
+        self.rightWidget.combobox_personalities.highlighted.connect(self.bot_information)
+
+        self.rightWidget.combobox_engine.currentIndexChanged.connect(lambda index: self.bot_information(index, select=True))
+        self.rightWidget.combobox_engine.highlighted.connect(self.bot_information)
+
+## analysis mode button connection
         self.rightWidget.gamereviewButton.clicked.connect(self.analysisModeHandler)
         self.rightWidget.analysis_NextMove_Button.clicked.connect(self.analysis_NextMove)
         self.rightWidget.analysis_PreviousMove_Button.clicked.connect(self.analysis_PreviousMove)
@@ -2483,6 +2831,21 @@ class MainWindow(QMainWindow):
         voice_input_thread.action_signal.connect(self.check_action) #receive voice input signal
         self.chatbotWidget.action_signal.connect(self.check_action) 
 
+## restore user settings
+    def restoreConfig(self):
+        global internal_speak_engine
+        speak_thread.setRateValue(int(self.settings.value('rate', 200)))    # Restore User Config
+        speak_thread.setVolumeValue(float(self.settings.value('volume', 0.7)))
+        internal_speak_engine = bool(self.settings.value('speak_engine', True))
+
+## store user settings
+    def closeEvent(self, event):
+        global internal_speak_engine
+        self.settings.setValue('rate', str(speak_thread.getRateValue()))
+        self.settings.setValue('volume', str(speak_thread.getVolumeValue()))
+        self.settings.setValue('speak_engine', '1' if internal_speak_engine else '')
+
+## handle start a new game
     def newGame(self):
         timeControl = self.timeControl
         game_play_mode = self.game_play_mode
@@ -2490,20 +2853,31 @@ class MainWindow(QMainWindow):
         self.change_main_flow_status(Bot_flow_status.setting_status)
         match(game_play_mode):
             case Game_play_mode.computer_mode:
-                print("computer")
+                print("Restart Computer Game")
+                speak("Restart Computer Game")
+                self.leftWidget.chessWebView.page().runJavaScript(js_function.bot_new_game)
+                self.change_main_flow_status(Bot_flow_status.board_init_status)
+                self.getColor()
+                self.initBoard()
+                self.getBoard()
+                self.change_main_flow_status(Bot_flow_status.game_play_status)
+
             case Game_play_mode.online_mode:
                 print("Starting a new game")
                 speak("Starting a new game")
                 self.check_action(timeControl)
 
+## back to main phase (game mode selection)
     def returnHomePage(self):
         if(self.game_play_mode == Game_play_mode.analysis_mode):
             self.keyPressed_Signal.disconnect(self.analysisAction)
             self.shortcut_A.activated.connect(self.analysisModeHandler)
+            self.analysis_mode_switch(False)
         self.leftWidget.chessWebView.load(QUrl("https://www.chess.com"))
         self.change_main_flow_status(Bot_flow_status.setting_status)
         speak("You have returned to home page")
 
+## function to announce the pieces being attacked
     def macroView(self):
         self.exist_square = []
         black = ["q", "n", "r", "b","p","k"]
@@ -2530,12 +2904,31 @@ class MainWindow(QMainWindow):
                     if self.chessBoard.board_object.is_attacked_by(chess.WHITE, i):
                         print(f"Piece {PIECES_SHORTFORM_CONVERTER[piece.symbol()]} at square {chess.SQUARE_NAMES[i]} is being attacked")
                         result += (f"Piece {PIECES_SHORTFORM_CONVERTER[piece.symbol()]} at square {chess.SQUARE_NAMES[i]} is being attacked")
-        speak(result)
+        if(result == ""):
+            speak("No pieces are under attack")
+        else:
+            speak(result)
 
+## display chatbot interface
     def chatbot(self):
             self.chatbotWidget.show()
             speak("Hello! I am a Chat Bot. How can I help you today? Type in your question and I will answer immediately. You can type in how to use for help.")
-            
+    
+## handle setting menu
+    def openSettingMenu(self):
+        global internal_speak_engine
+        menu = SettingMenu(rate=int((speak_thread.getRateValue() - 100) * 0.5), volume=int(speak_thread.getVolumeValue() * 100), engine=internal_speak_engine)
+        print(f"rate: {speak_thread.getRateValue()}, volume: {speak_thread.getVolumeValue()}")
+        # menu.speech_rate_slider.setValue()
+        # menu.speech_volume_slider.setValue()
+
+        if menu.exec():
+            self.speech_rate = menu.get_rate_value() * 2 + 100  # change to scale of interval 100 to 300
+            self.speech_volume = menu.get_volume_value()
+            internal_speak_engine = menu.get_engine_value()
+            speak_thread.setRateValue(self.speech_rate)
+            speak_thread.setVolumeValue(self.speech_volume)
+
 ## Game Review Function
     def analysisModeHandler(self):
         def setMoveLength(length):
@@ -2548,10 +2941,10 @@ class MainWindow(QMainWindow):
         def callback1(gameId):
             print(gameId)
             self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(3000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.checkReviewLimited, callback2)))
-            # if(self.game_play_mode == Game_play_mode.computer_mode):
-            self.leftWidget.chessWebView.load(QUrl(f"https://www.chess.com/analysis/game/computer/{gameId}"))
-            # else:
-                # self.leftWidget.chessWebView.load(QUrl(f"https://www.chess.com/analysis/game/live/{gameId}"))
+            if(self.game_play_mode == Game_play_mode.computer_mode):
+                self.leftWidget.chessWebView.load(QUrl(f"https://www.chess.com/analysis/game/computer/{gameId}"))
+            else:
+                self.leftWidget.chessWebView.load(QUrl(f"https://www.chess.com/analysis/game/live/{gameId}"))
 
         def callback2(ReviewLimited):
             print(f"Reivew Limited: {ReviewLimited}")
@@ -2569,7 +2962,7 @@ class MainWindow(QMainWindow):
 
         def callback3(value):
             if(value == None):
-                QTimer.singleShot(500, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.clickStartReview, callback3))
+                QTimer.singleShot(1000, lambda: self.leftWidget.chessWebView.page().runJavaScript(js_function.clickStartReview, callback3))
             else:
                 callback4(value)
 
@@ -2589,6 +2982,7 @@ class MainWindow(QMainWindow):
             self.keyPressed = None
             self.analysisBoard = ChessBoard()
             self.moveLength = -1
+            self.best_pressed = False
             self.leftWidget.chessWebView.page().runJavaScript(js_function.clickGameReview, callback0)
         
         # if(self.game_flow_status != Game_flow_status.game_end):
@@ -2620,6 +3014,10 @@ class MainWindow(QMainWindow):
             # self.rightWidget.analysisCurrentMove.setText("Current Move: \n" + sanString + ", ")
             print(f"feedback: {self.feedback}")
             self.feedback = self.feedback.replace(sanString, self.analysisHumanForm(self.feedback))
+            if(self.best_pressed):
+                self.leftWidget.chessWebView.page().runJavaScript(js_function.analysis_retry)
+                self.analysisBoard.board_object.pop()
+                self.best_pressed = False
             if(self.explain != None):
                 self.rightWidget.analysisExplanation.setText("Explanation: \n" + self.explain)
             else:
@@ -2679,6 +3077,7 @@ class MainWindow(QMainWindow):
                 case Qt.Key.Key_B:
                     if(self.bestExist):
                         self.keyPressed = Qt.Key.Key_B
+                        self.best_pressed = True
                         self.leftWidget.chessWebView.page().runJavaScript(js_function.analysis_GetBestMove)
                         self.poppedMove = self.analysisBoard.board_object.pop()
                         QTimer.singleShot(1000, self.getReviewComment)
@@ -2724,6 +3123,8 @@ class MainWindow(QMainWindow):
         if(self.keyPressed == Qt.Key.Key_B):
             self.analysisBoard.board_object.push(self.poppedMove)
             self.keyPressed = None
+            self.best_pressed = True
+            print(self.analysisBoard)
         else:
             self.analysisBoard.board_object.push_san(sanString)
 
@@ -2785,6 +3186,7 @@ class MainWindow(QMainWindow):
             self.analysis_Shortcut.get(item).setEnabled(on_off)
 
 ## Game Review Function End
+
 ## Voice Input Function
 
     def voice_input(self):
@@ -2817,8 +3219,6 @@ class MainWindow(QMainWindow):
             case _:
                 if (self.game_flow_status != Bot_flow_status.select_status and self.game_flow_status != Bot_flow_status.game_play_status):
                     self.game_play_mode = Game_play_mode.online_mode
-                    self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(2000, lambda: self.online_select_timeControl(str)))
-                    self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/play/online"))
                     layout = self.rightWidget.layout()
                     unhidden_widgets = []
                     for i in range(layout.count()):
@@ -2827,6 +3227,8 @@ class MainWindow(QMainWindow):
                             unhidden_widgets.append(widget)
                     for item in unhidden_widgets:
                         item.hide()
+                    self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(2000, lambda: self.online_select_timeControl(str, skip=True)))
+                    self.leftWidget.chessWebView.load(QUrl("https://www.chess.com/play/online"))
                 else:
                     self.online_select_timeControl(str)
 
@@ -2841,7 +3243,7 @@ class MainWindow(QMainWindow):
             self.keyPressed_Signal.emit(event.key())
     
 ## load text to TTS queue
-def speak(sentence, importance=False, dialog=False):
+def speak(sentence, importance=False, dialog=False, announce=None):
     global previous_sentence
     global internal_speak_engine
 
@@ -2850,7 +3252,11 @@ def speak(sentence, importance=False, dialog=False):
         speak_thread.queue.put((sentence, importance))
     else:
         print("no speak engine")
+        if(announce):
+            print("announce move")
+            speak_thread.queue.put((sentence, importance))
 
+# Voice Input Thread to handle audio recording, speech-to-text, keyword extraction and trigger signals
 class VoiceInput_Thread(QThread):
     '''
     Allow User using Voice Input by record user's audio, perform Speech to Text and
@@ -2964,6 +3370,7 @@ class VoiceInput_Thread(QThread):
             
         else:
             print("Sorry, I don't understand your request. Please repeat it again")
+            speak("Sorry, I don't understand your request. Please repeat it again")
 
     def voiceToMove(self):
         self.chess_move = []
@@ -3007,15 +3414,13 @@ if __name__ == "__main__":
         my_env = os.environ
         my_env['PATH'] = f"{ffmpeg_dir}{os.pathsep}{my_env['PATH']}"
 
-    print(my_env)
+    # print(my_env)
 
     app = QApplication(sys.argv)
     app.setApplicationName("Chess Bot")
 
     window = MainWindow()
 
-    global internal_speak_engine
-    internal_speak_engine = window.rightWidget.screen_reader_checkBox.isChecked()
 
     icon = QIcon(os.path.join(current_dir, "Resource", "Logo", "chessBot_logo.png"))
     window.setWindowIcon(icon)

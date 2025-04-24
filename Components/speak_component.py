@@ -12,9 +12,11 @@ class TTSThread(threading.Thread):
         self.importance = False
         self.queue = queue.Queue()
         self.daemon = True
+        self.rate = 200  #setting interval 100 to 300
+        self.volume = 0.7
         self.tts_engine = pyttsx3.init("sapi5")    ## sapi5 for Windows, nsss for Mac, espeak for others
-        self.tts_engine.setProperty("rate", 190)
-        self.tts_engine.setProperty("volume", 0.7)
+        self.tts_engine.setProperty("rate", self.rate)
+        self.tts_engine.setProperty("volume", self.volume)
         self.tts_engine.setProperty("voice", "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_ZIRA_11.0")
         self.tts_engine.startLoop(False)
         self.start()
@@ -37,3 +39,17 @@ class TTSThread(threading.Thread):
                     time.sleep(2)
 
         self.tts_engine.endLoop()
+
+    def setRateValue(self, rate):
+        self.rate = rate
+        self.tts_engine.setProperty("rate", rate)
+
+    def getRateValue(self):
+        return self.rate
+
+    def setVolumeValue(self, volume):
+        self.volume = volume
+        self.tts_engine.setProperty("volume", volume)
+
+    def getVolumeValue(self):
+        return self.volume

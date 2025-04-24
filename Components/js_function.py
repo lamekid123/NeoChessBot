@@ -9,7 +9,7 @@ getColor = """
 """
     
 white_GetOpponentMove = """
-    function getOpponentMove(mode) {
+    function getOpponentMove() {
         let player_color = "WHITE";
         let moveList = document.querySelectorAll(".main-line-row");
         let opponent_move;
@@ -42,7 +42,7 @@ white_GetOpponentMove = """
     """
 
 black_GetOpponentMove = """
-    function getOpponentMove(mode) {
+    function getOpponentMove() {
         let player_color = "BLACK";
         let moveList = document.querySelectorAll(".main-line-row");
         let opponent_move;
@@ -213,25 +213,25 @@ puzzle_mode_GetOpponentMove = """
     puzzle_mode_GetOpponentMove();
 """
 
-getCoordinate = """
-    function getCoordinate(pos, screen_left, screen_top){
-        let pix_scale = window.devicePixelRatio;
-        let top_margin = window.outerHeight - window.innerHeight;
-        let pieces = document.querySelector(".square-" + pos);
-        let info = pieces.getBoundingClientRect();
-        let interval = info['height'];
-        let win_x = (window.screenX - screen_left);
-        let win_y = (window.screenY - screen_top);
-        let x = ((info['left'] + info['right']) * 0.5  + win_x) * pix_scale + screen_left;
-        let y = ((info['top'] + info['bottom']) * 0.5 + win_y + top_margin) * pix_scale + screen_top;
-        let name = pieces.getAttribute('class'); 
-        return [x, y, interval*pix_scale, name, pix_scale];
-}
-"""
-## pix_scale 計返放大嘅比例, 用作計算正確coordinate
-## top margin 用作移動鼠標到程式內容的左上角(不是視窗)
-## 解決多mon錯位嘅問題: 搵返目前視窗處於嘅位置, 拎佢嘅left同top value,
-# 將現有嘅coordinate_x減去left, coordinate_y減去top 再乘以倍大比例去獲取移位後嘅coordinate, 最後加返減去嘅top同left將鼠標移去正面嘅monitor
+# getCoordinate = """
+#     function getCoordinate(pos, screen_left, screen_top){
+#         let pix_scale = window.devicePixelRatio;
+#         let top_margin = window.outerHeight - window.innerHeight;
+#         let pieces = document.querySelector(".square-" + pos);
+#         let info = pieces.getBoundingClientRect();
+#         let interval = info['height'];
+#         let win_x = (window.screenX - screen_left);
+#         let win_y = (window.screenY - screen_top);
+#         let x = ((info['left'] + info['right']) * 0.5  + win_x) * pix_scale + screen_left;
+#         let y = ((info['top'] + info['bottom']) * 0.5 + win_y + top_margin) * pix_scale + screen_top;
+#         let name = pieces.getAttribute('class'); 
+#         return [x, y, interval*pix_scale, name, pix_scale];
+# }
+# """
+# ## pix_scale 計返放大嘅比例, 用作計算正確coordinate
+# ## top margin 用作移動鼠標到程式內容的左上角(不是視窗)
+# ## 解決多mon錯位嘅問題: 搵返目前視窗處於嘅位置, 拎佢嘅left同top value,
+# # 將現有嘅coordinate_x減去left, coordinate_y減去top 再乘以倍大比例去獲取移位後嘅coordinate, 最後加返減去嘅top同left將鼠標移去正面嘅monitor
 
 clickNextPuzzle = """
     function clickNextPuzzle(){
@@ -253,7 +253,7 @@ clickTimeControlButton = """
                 }
             }
             setTimeout(() => {
-                document.querySelector('.create-game-component').querySelector('.cc-button-primary').click();
+                document.querySelector('.create-game-next-component').querySelector('.cc-button-primary').click();
                 if(!login){
                     setTimeout(() => document.getElementById("guest-button").click(), 1500);
                 }
@@ -362,9 +362,9 @@ getReviewComment = """
             else{
                 feedback = icon + feedback;
             }
-            let explain = document.querySelector('.analysis-type-component')?.textContent;
+            let explain = document.querySelector('.move-feedback-box-row')?.textContent;
             let bestExist = false;
-            if(document.querySelector('.tool-magnifier-star')){
+            if(document.querySelector('[data-glyph="tool-magnifier-star"]')){
                 bestExist = true;
             }
             return [feedback, explain, bestExist];
@@ -611,4 +611,97 @@ retryPuzzle = """
         document.querySelector('[aria-label="Retry"]').click();
     }
     retryPuzzle();
+"""
+
+open_bot_menu = """
+    function open_bot_menu(){
+        document?.querySelector('[aria-label="Close"]')?.click();
+        let bot_list = document.querySelectorAll('.bot-group-accordion-component');
+        for(bot of bot_list){
+            bot.querySelector('.bot-group-accordion-toggleClickArea').click();
+        }
+    }
+    open_bot_menu();
+"""
+
+select_bot = """
+    function select_bot(bot_name){
+        if(document?.querySelector('[aria-label="Close"]')){
+            document?.querySelector('[aria-label="Close"]')?.click();
+        }
+        let search = '[data-bot-selection-name="' + bot_name + '"]';
+        let bot = document?.querySelector(search)
+        if(bot){
+            bot.click();
+            setTimeout(document.querySelector('.bot-selection-cta-button-button').click(), 300);
+        }
+        else{
+            let bot_list = document.querySelectorAll('.bot-group-accordion-component');
+            for(bot of bot_list){
+                bot.querySelector('.bot-group-accordion-toggleClickArea').click();
+            }
+            setTimeout(() => {
+                document?.querySelector(search).click();
+                document.querySelector('.bot-selection-cta-button-button').click();
+            }, 500);
+        }
+    }
+"""
+
+select_engine_level = """
+    function select_engine_level(level){
+        let slider = document?.querySelector('[aria-label="Slider"]');
+        if(!slider){
+            let bot_list = document.querySelectorAll('.bot-group-accordion-component');
+            for(bot of bot_list){
+                bot.querySelector('.bot-group-accordion-toggleClickArea').click();
+            }
+            setTimeout(() => {
+                slider = document?.querySelector('[aria-label="Slider');
+                slider.value = level;
+                slider.dispatchEvent(new Event('input', { bubbles: true }));
+                setTimeout(document.querySelector('.bot-selection-cta-button-button').click(), 500);
+            }, 300);
+        }
+        else{
+            slider.value = level;
+            slider.dispatchEvent(new Event('input', { bubbles: true }));
+            setTimeout(document.querySelector('.bot-selection-cta-button-button').click(), 500);
+        }
+    }
+"""
+
+check_bot_locked = """
+    function check_bot_locked(){
+        if(document?.querySelector(".modal-trial-modal")){
+            return true;
+        }
+        return false;
+    }
+    check_bot_locked();
+"""
+
+bot_new_game = """
+    function bot_new_game(){
+        buttons = document?.querySelectorAll("button");
+        for(item of buttons){
+            if(item.textContent.trim() == "Rematch"){
+                item.click();
+                break;
+            }
+        }
+    }
+    bot_new_game();
+"""
+
+analysis_retry = """
+    function analysis_retry(){
+        buttons = document.querySelectorAll('button');
+        for(i of buttons){
+            if(i.textContent.trim() == "Retry"){
+                i.click();
+            }
+        }
+    }
+    analysis_retry();
 """

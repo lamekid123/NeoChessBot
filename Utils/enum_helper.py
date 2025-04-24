@@ -32,7 +32,7 @@ class Game_flow_status(Enum):
 class Speak_template(Enum):
     ###setting
     welcome_sentense = "Welcome to chess bot!! "
-    game_intro_sentense = "you can press control O to find the options. <> press control R to repeat last sentence. <> press TAB key to select options. <> press w to call out Chat bot to answer your questions"
+    game_intro_sentense = "press TAB key to navigate options. <> press spacebar or enter key to confirm your selection. <> press control R to repeat last sentence. <> press control O to find availble options. <> press control Q to summon Chatbot to answer your questions."
     setting_state_help_message = (
         "Press Control + 1 to play with computer. Press Control + 2 to play with other online player. Or press tab key to select from buttons. You can also press Control + S to start record voice input, and press Control + S again to stop. Each voice input can only perform one action. For voice input command, press Control Q to list the available options in current state."
     )
@@ -69,9 +69,9 @@ class Speak_template(Enum):
     check_time_sentense = "you remain {0}, opponent remain {1}"
 
     user_black_side_sentense = (
-        "You are playing as black. Please wait for your opponent's move."
+        "You are playing as black."
     )
-    user_white_side_sentense = "You are playing as white. Please make your first move."
+    user_white_side_sentense = "You are playing as white."
 
     #analysis
     analysis_help_message = "Press Right Arrow Key for next move. Press Left Arrow Key for previous move. Press Up Arrow Key for the first move. Press E for explanation. Press B to get the best move. Press C to get the current move. Or press tab key to select function from buttons."
@@ -93,18 +93,24 @@ class bot_List(Enum):
     backToSchool_ProfessorPassant = {"name": "Professor Passant", "rating": "2025", "category": "Back To School"} #tick
     backToSchool_Eugene = {"name": "Eugene", "rating": "?", "category": "Back To School"} #tick
 
+class coach(Enum):
+    #5
     coach_CoachDanny = {"name": "Coach Danny", "rating": "400", "category": "Coach"} #tick
-    coach_CoachMae = {"name": "Coach Mae", "rating": "800", "category": "Coach"} #tick
-    coach_CoachDante = {"name": "Coach Dante", "rating": "1200", "category": "Coach"}
+    coach_CoachMay = {"name": "Coach May", "rating": "800", "category": "Coach"} #tick
+    coach_CoachDan = {"name": "Coach Dan", "rating": "1200", "category": "Coach"}
     coach_CoachMonica = {"name": "Coach Monica", "rating": "1600", "category": "Coach"} 
-    coach_CoachDavid = {"name": "Coach David", "rating": "2000", "category": "Coach"}
+    coach_CoachDave = {"name": "Coach Dave", "rating": "2000", "category": "Coach"}
 
+class adaptive(Enum):
+    #5
     adaptive_Jimmy = {"name": "Jimmy", "rating": "600", "category": "Adaptive"}  #tick
     adaptive_Nisha = {"name": "Nisha", "rating": "900", "category": "Adaptive"}
     adaptive_Tomas = {"name": "Tomas", "rating": "1200", "category": "Adaptive"}
     adaptive_Devon = {"name": "Devon", "rating": "1600", "category": "Adaptive"}
     adaptive_Natasha = {"name": "Natasha", "rating": "2000", "category": "Adaptive"}
 
+class beginner(Enum):
+    #15
     beginner_Martin = {"name": "Martin", "rating": "250", "category": "Beginner"} #tick
     beginner_Wayne = {"name": "Wayne", "rating": "250", "category": "Beginner"}
     beginner_Fabian = {"name": "Fabian", "rating": "250", "category": "Beginner"}
@@ -121,6 +127,8 @@ class bot_List(Enum):
     beginner_Santiago = {"name": "Santiago", "rating": "850", "category": "Beginner"}
     beginner_Karim = {"name": "Karim", "rating": "850", "category": "Beginner"}
 
+class intermediate(Enum):
+    #15
     intermediate_Maria = {"name": "Maria", "rating": "1000", "category": "Intermediate"} #tick
     intermediate_Maxim = {"name": "Maxim", "rating": "1000", "category": "Intermediate"}
     intermediate_Hans = {"name": "Hans", "rating": "1000", "category": "Intermediate"}
@@ -137,6 +145,8 @@ class bot_List(Enum):
     intermediate_Ali = {"name": "Ali", "rating": "1400", "category": "Intermediate"}
     intermediate_Mateo = {"name": "Mateo", "rating": "1400", "category": "Intermediate"}
 
+class advanced(Enum):
+    #20
     advanced_Wendy = {"name": "Wendy", "rating": "1500", "category": "Advanced"} #tick
     advanced_Antonio = {"name": "Antonio", "rating": "1500", "category": "Advanced"}
     advanced_Pierre = {"name": "Pierre", "rating": "1500", "category": "Advanced"}
@@ -158,6 +168,8 @@ class bot_List(Enum):
     advanced_Manuel = {"name": "Manuel", "rating": "2100", "category": "Advanced"}
     advanced_Oscar = {"name": "Oscar", "rating": "2100", "category": "Advanced"}
 
+class master(Enum):
+    #10
     master_Nora = {"name": "Nora", "rating": "2200", "category": "Master"} #tick
     master_Noam = {"name": "Noam", "rating": "2200", "category": "Master"}
     master_Ahmed = {"name": "Ahmed", "rating": "2200", "category": "Master"}
@@ -169,18 +181,30 @@ class bot_List(Enum):
     master_Luke = {"name": "Luke", "rating": "2450", "category": "Master"}
     master_Wei = {"name": "Wei", "rating": "2450", "category": "Master"}
 
+class athletes(Enum):
+    #11
+    athletes_JustinReid = {"name": "Justin Reid", "rating": "1300", "category": "Athletes"}
+    athletes_JoeyVotto = {"name": "Joey Votto", "rating": "1575", "category": "Athletes"}
     athletes_LarryFitzgeraldJr = {"name": "Larry Fitzgerald Jr.", "rating": "1250", "category": "Athletes"} #tick
     athletes_JaylenBrown = {"name": "Jaylen Brown", "rating": "1500", "category": "Athletes"} #tick
+    athletes_DrueTranquill = {"name": "Drue Tranquill", "rating": "1300", "category": "Athletes"}
     athletes_GordonHayward = {"name": "Gordon Hayward", "rating": "1350", "category": "Athletes"} #tick
     athletes_ChidobeAwuzie = {"name": "Chidobe Awuzie", "rating": "1400", "category": "Athletes"} #tick
     athletes_ChristianPulisic = {"name": "Christian Pulisic", "rating": "1500", "category": "Athletes"} #tick
+    athletes_JamieJaquezJr = {"name": "Jamie Jaquez Jr.", "rating": "1500", "category": "Athletes"}
     athletes_DarylMorey = {"name": "Daryl Morey", "rating": "1550", "category": "Athletes"} #tick
     athletes_LukAI = {"name": "Luk.AI", "rating": "2500", "category": "Athletes"} #tick
 
+class musicians(Enum):
+    #2
     musicians_ThomasMars = {"name": "Thomas Mars", "rating": "1500", "category": "Musicians"} #tick
+    musicians_Logic = {"name": "Logic", "rating": "1500", "category": "Musicians"}
     musicians_Wallows = {"name": "Wallows", "rating": "1200", "category": "Musicians"} #tick
 
+class creators(Enum):
+    #32
     creators_xQc = {"name": "xQc", "rating": "1200", "category": "Creators"} #tick
+    creators_MarkRober = {"name": "Mark Rober", "rating": "1200", "category": "Creators"} #tick
     creators_MrBeast = {"name": "MrBeast", "rating": "1100", "category": "Creators"} #tick
     creators_Pokimane = {"name": "Pokimane", "rating": "1000", "category": "Creators"} #tick
     creators_LudWig = {"name": "LudWig", "rating": "1200", "category": "Creators"} #tick
@@ -199,7 +223,7 @@ class bot_List(Enum):
     creators_Aman = {"name": "Aman", "rating": "2550", "category": "Creators"}
     creators_Anna = {"name": "Anna", "rating": "2400", "category": "Creators"}
     creators_Nemo = {"name": "Nemo", "rating": "2300", "category": "Creators"}
-    creators_Cramling = {"name": "Cramling", "rating": "2100", "category": "Creators"}
+    creators_AnnaCramling = {"name": "Anna Cramling", "rating": "2100", "category": "Creators"}
     creators_Samay = {"name": "Samay", "rating": "1800", "category": "Creators"} #tick
     creators_Naycir = {"name": "Naycir", "rating": "1300", "category": "Creators"}
     creators_Canty = {"name": "Pokimane", "rating": "2300", "category": "Creators"}
@@ -209,31 +233,37 @@ class bot_List(Enum):
     creators_Hafu = {"name": "Hafu", "rating": "1500", "category": "Creators"} #tick
     creators_Sardoche = {"name": "Sardoche", "rating": "1550", "category": "Creators"} #tick
     creators_Fundy = {"name": "Fundy", "rating": "1500", "category": "Creators"} #tick
+    creators_Sabo = {"name": "Sabo", "rating": "1927", "category": "Creators"} #tick
     creators_SonicFox = {"name": "SonicFox", "rating": "1750", "category": "Creators"} #tick
-    creators_MarkRober = {"name": "Mark Rober", "rating": "1200", "category": "Creators"} #tick
     creators_ReyEnigma = {"name": "Rey Enigma", "rating": "2500", "category": "Creators"} #tick
 
+class top_players(Enum):
+    #22
     topPlayers_Hikaru = {"name": "Hikaru", "rating": "2820", "category": "Top Players"} #tick
     topPlayers_AnnaMuzychuk = {"name": "Anna Muzychuk", "rating": "2606", "category": "Top Players"}
     topPlayers_Vishy = {"name": "Vishy", "rating": "2820", "category": "Top Players"}
-    topPlayers_Kramnik = {"name": "Kramnik", "rating": "2820", "category": "Top Players"}
+    topPlayers_DingLiren = {"name": "Ding Liren", "rating": "2788", "category": "Top Players"}
     topPlayers_Fabiano = {"name": "Fabiano", "rating": "2840", "category": "Top Players"}
-    topPlayers_Danya = {"name": "Danya", "rating": "2650", "category": "Top Players"} #tick
     topPlayers_Kosteniuk = {"name": "Kosteniuk", "rating": "2561", "category": "Top Players"}
+    topPlayers_Danya = {"name": "Danya", "rating": "2650", "category": "Top Players"} #tick
     topPlayers_Ian = {"name": "Ian", "rating": "2795", "category": "Top Players"}
     topPlayers_Aronian = {"name": "Aronian", "rating": "2830", "category": "Top Players"}
-    topPlayers_Morphy = {"name": "Morphy", "rating": "2500", "category": "Top Players"}
+    topPlayers_PaulMorphy = {"name": "Paul Morphy", "rating": "2600", "category": "Top Players"}
     topPlayers_JuditPolgar = {"name": "Judit Polgar", "rating": "2735", "category": "Top Players"} #tick
     topPlayers_Vidit = {"name": "Vidit", "rating": "2730", "category": "Top Players"}
     topPlayers_IrinaKrush = {"name": "Irina Krush", "rating": "2502", "category": "Top Players"}
     topPlayers_Giri = {"name": "Giri", "rating": "2800", "category": "Top Players"}
-    topPlayers_DingLiren = {"name": "Ding Liren", "rating": "2788", "category": "Top Players"}
-    topPlayers_Magnus = {"name": "Magnus", "rating": "2882", "category": "Top Players"} #tick
     topPlayers_Abdusattorov = {"name": "Abdusattorov", "rating": "2660", "category": "Top Players"}
-    topPlayers_Bok = {"name": "Bok", "rating": "2650", "category": "Top Players"}
+    topPlayers_Lasker = {"name": "Lasker", "rating": "2640", "category": "Top Players"}
     topPlayers_HouYifan = {"name": "Hou Yifan", "rating": "2686", "category": "Top Players"}
+    topPlayers_Bok = {"name": "Bok", "rating": "2650", "category": "Top Players"}
     topPlayers_WesleySo = {"name": "Wesley So", "rating": "2820", "category": "Top Players"}
+    topPlayers_Tal = {"name": "Tal", "rating": "2705", "category": "Top Players"}
+    topPlayers_Capablanca = {"name": "Capablanca", "rating": "2725", "category": "Top Players"}
+    topPlayers_Magnus = {"name": "Magnus", "rating": "2882", "category": "Top Players"} #tick
 
+class personalities(Enum):
+    #13
     personalities_Danny = {"name": "Danny", "rating": "2500", "category": "Personalities"} #tick
     personalities_Agadmator = {"name": "Agadmator", "rating": "2000", "category": "Personalities"}
     personalities_Robert = {"name": "Robert", "rating": "2600", "category": "Personalities"}
@@ -244,10 +274,36 @@ class bot_List(Enum):
     personalities_Krikor = {"name": "Krikor", "rating": "2550", "category": "Personalities"}
     personalities_FunMasterMike = {"name": "FunMasterMike", "rating": "2300", "category": "Personalities"}
     personalities_Pandolfini = {"name": "Pandolfini", "rating": "2250", "category": "Personalities"}
+    personalities_PiaCramling = {"name": "Pia Cramling", "rating": "2250", "category": "Personalities"}
     personalities_Phiona = {"name": "Phiona", "rating": "1700", "category": "Personalities"}
     personalities_Dawid = {"name": "Dawid", "rating": "2400", "category": "Personalities"}
 
-    engine_Beginner_Rating250 = {"name": "Beginner", "rating": "250", "category": "Engine"}
+class engine(Enum):
+    engine_level1_Rating250 = {"name": "Level 1", "rating": "250", "category": "Engine", "level": 1}
+    engine_level2_Rating400 = {"name": "Level 2", "rating": "400", "category": "Engine", "level": 2}
+    engine_level3_Rating550 = {"name": "Level 3", "rating": "550", "category": "Engine", "level": 3}
+    engine_level4_Rating700 = {"name": "Level 4", "rating": "700", "category": "Engine", "level": 4}
+    engine_level5_Rating850 = {"name": "Level 5", "rating": "850", "category": "Engine", "level": 5}
+    engine_level6_Rating1000 = {"name": "Level 6", "rating":"1000","category": "Engine", "level": 6}
+    engine_level7_Rating1100 = {"name": "Level 7", "rating":"1100","category": "Engine", "level": 7}
+    engine_level8_Rating1200 = {"name": "Level 8", "rating": "1200", "category": "Engine", "level": 8}
+    engine_level9_Rating1300 = {"name": "Level 9", "rating": "1300", "category": "Engine", "level": 9}
+    engine_level10_Rating1400 = {"name": "Level 10", "rating": "1400", "category": "Engine", "level": 10}
+    engine_level11_Rating1500 = {"name": "Level 11", "rating": "1500", "category": "Engine", "level": 11}
+    engine_level12_Rating1600 = {"name": "Level 12", "rating": "1600", "category": "Engine", "level": 12}
+    engine_level13_Rating1700 = {"name": "Level 13", "rating": "1700", "category": "Engine", "level": 13}
+    engine_level14_Rating1800 = {"name": "Level 14", "rating": "1800", "category": "Engine", "level": 14}
+    engine_level15_Rating1900 = {"name": "Level 15", "rating": "1900", "category": "Engine", "level": 15}
+    engine_level16_Rating2000 = {"name": "Level 16", "rating": "2000", "category": "Engine", "level": 16}
+    engine_level17_Rating2100 = {"name": "Level 17", "rating": "2100", "category": "Engine", "level": 17}
+    engine_level18_Rating2200 = {"name": "Level 18", "rating": "2200", "category": "Engine", "level": 18}
+    engine_level19_Rating2300 = {"name": "Level 19", "rating": "2300", "category": "Engine", "level": 19}
+    engine_level20_Rating2400 = {"name": "Level 20", "rating": "2400", "category": "Engine", "level": 20}
+    engine_level21_Rating2500 = {"name": "Level 21", "rating": "2500", "category": "Engine", "level": 21}
+    engine_level22_Rating2600 = {"name": "Level 22", "rating": "2600", "category": "Engine", "level": 22}
+    engine_level23_Rating2700 = {"name": "Level 23", "rating": "2700", "category": "Engine", "level": 23}
+    engine_level24_Rating2900 = {"name": "Level 24", "rating": "2900", "category": "Engine", "level": 24}
+    engine_level25_Rating3200 = {"name": "Level 25", "rating": "3200", "category": "Engine", "level": 25}
 
 class timeControl(Enum):
     timeControl_1_0 = "1 min"
@@ -266,7 +322,7 @@ class determinant(Enum):
 
     computer_mode_words = ["computer", "computers", "pvc", "bot", "bots"]
 
-    online_mode_words = ["online", "player", "players", "pvp", "rank"]
+    online_mode_words = ["online", "player", "players", "pvp", "rank", "ranking"]
 
     puzzle_mode_words = ["puzzle", "puzzles"]
 
@@ -289,14 +345,28 @@ class timeControlDeterminant_Speak(Enum):
     timeControl_1_0_words = dict.fromkeys(["1 + 0", "one minute", "1 minute", "1 plus 0"], timeControl.timeControl_1_0.value)
     timeControl_1_1_words = dict.fromkeys(["1 + 1", "one plus one", "1 plus 1"], timeControl.timeControl_1_1.value)
     timeControl_2_1_words = dict.fromkeys(["2 + 1", "two plus one", "2 plus 1"], timeControl.timeControl_2_1.value)
-    timeControl_3_0_words = dict.fromkeys(["3 + 0", "three minutes", "3 minutes", "3 plus 0"], timeControl.timeControl_3_0.value)
+    timeControl_3_0_words = dict.fromkeys(["3 + 0", "three minutes", "3 minutes", "3 minute", "3 plus 0"], timeControl.timeControl_3_0.value)
     timeControl_3_2_words = dict.fromkeys(["3 + 2", "three plus two", "3 plus 2"], timeControl.timeControl_3_2.value)
-    timeControl_5_0_words = dict.fromkeys(["5 + 0", "five minutes", "5 minutes", "5 plus 0"], timeControl.timeControl_5_0.value)
-    timeControl_10_0_words = dict.fromkeys(["10 + 0", "ten minutes", "10 minutes", "10 plus 0"], timeControl.timeControl_10_0.value)
+    timeControl_5_0_words = dict.fromkeys(["5 + 0", "five minutes", "5 minutes", "5 minute", "5 plus 0"], timeControl.timeControl_5_0.value)
+    timeControl_10_0_words = dict.fromkeys(["10 + 0", "ten minutes", "10 minutes", "10 plus 0", "10 minute"], timeControl.timeControl_10_0.value)
     timeControl_15_10_words = dict.fromkeys(["15 + 10", "fifteen plus ten", "15 plus 10"], timeControl.timeControl_15_10.value)
-    timeControl_30_0_words = dict.fromkeys(["30 + 0", "thirty minutes", "30 minutes", "30 plus 0", "default"], timeControl.timeControl_30_0.value)
+    timeControl_30_0_words = dict.fromkeys(["30 + 0", "thirty minutes", "30 minutes", "30 minute", "30 plus 0", "default"], timeControl.timeControl_30_0.value)
 
-# for item in timeControlDeterminant_Type:
-#     for words in item.value:
-#         print(words)
-    
+class response(Enum):
+    greetings = "Hi! I am here to help you with any questions. You can ask me about how to use this software."
+    howareyou = "I'm doing well, thank you for asking!"
+    help = "You can navigate different options by pressing Tab key or Arrows. When entered in a chess game, there are 3 input mode. Press Ctrl F for the default keyboard base interface. <> " \
+    "Ctrl J for Arrow mode that allow you to navagate through the board and move pieces by choosing target and destination grid using space bar." \
+    "<> Ctrl S to activate voice input and press Ctrl S again to finish your input. <> You can ask for arrow mode and voice input for more information." \
+    "There are also some shortcuts availble. You can ask me about the shortcuts if you are interested."
+    arrow_mode = "Press Ctrl J while conducting a chess game to enter arrow mode. <> You can navigate the chessboard using arrow key and move chess piece by pressing spacebar to select source and destination grid."
+    voice_input = "Press Ctrl S to activate Voice Input. Press Ctrl S again to finish Voice Input. You can select game mode by saying the game mode keyword you want to play. <> Computer for Computer Mode, Online for Online Player Mode, Puzzle for Puzzle Mode. <> You can also perform chess move by saying the UCI notation, which means the source grid and destination grid in order. For example, a sentence like 'move e2 to e4' indicates move the chess piece on e2 to e4. <> You can also resign by saying resign or surrender."
+    shortcut = "Press Ctrl Q to activate chat bot. \n<> Ctrl O for avalible options. <> For game mode selection, Press Ctrl 1 for computer mode. <> Ctrl 2 for online player mode. <> Ctrl 3 for puzzle mode. <> For Game Review Mode, Press A to enter game review mode. Press B for best move. Left arrow for next chess move. Right arrow for previous chess move."
+
+class chatbot_response(Enum):
+    greetings = dict.fromkeys(["hi","hello", "nice to meet you"], response.greetings.value)
+    howareyou = dict.fromkeys(["how are you", "I'm doing well, thank you for asking!"], response.howareyou.value)
+    help = dict.fromkeys(["how to use", "tutorial", "tutor", "help"], response.help.value)
+    arrow_mode = dict.fromkeys(["arrow", "arrows"], response.arrow_mode.value)
+    voice_input = dict.fromkeys(["voice", "voices"], response.voice_input.value)
+    shortcut = dict.fromkeys(["shortcut", "shortcuts"], response.shortcut.value)
