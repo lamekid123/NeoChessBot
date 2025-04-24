@@ -24,13 +24,13 @@ NeoChessBot is a upgraded version of [ChessBot](https://github.com/GNOLNG/ChessB
 ***Chat Bot: Handling users’ questions and operation requests.***
   - **Activation: Press the "Chat Bot" button displayed in main phase or using the “Ctrl + Q” shortcut.**
   - **Chat Bot Operate based on Keywords:** 
-  |Actions | Keywords|
-  |Greetings | [hi, hello, how are you, nice to meet you]|
-  |Provide the basic tutorial in Operation | [how to use, tutorial, tutor, help]|
-  |Provide information about different input mode | {input mode} e.g. arrow mode, voice input|
-  |Provide all the available shortcut | [shortcut(s)]|
-  |Provide all the available options in current software state | [what, option(s)]|
-  |Start an online game with provided time control | Format of “{minute}+{increment}” E.g. “5+0”, “5 minute(s)”, “5 plus 0” for 5 minutes|
+|Actions | Keywords|
+|Greetings | [hi, hello, how are you, nice to meet you]|
+|Provide the basic tutorial in Operation | [how to use, tutorial, tutor, help]|
+|Provide information about different input mode | {input mode} e.g. arrow mode, voice input|
+|Provide all the available shortcut | [shortcut(s)]|
+|Provide all the available options in current software state | [what, option(s)]|
+|Start an online game with provided time control | Format of “{minute}+{increment}” E.g. “5+0”, “5 minute(s)”, “5 plus 0” for 5 minutes|
 
 ***Make a move***
 
@@ -67,13 +67,13 @@ NeoChessBot is a upgraded version of [ChessBot](https://github.com/GNOLNG/ChessB
   - **The first Control + S indicates voice input activated and it will record your voice**
   - **The second Control + S terminate the recording session and process the audio to determine your voice input action**
   **Keywords/Formats for Voice Input:**
-  | Actions | Keywords|
-  | Select Computer Mode  | [computer(s), pvc, bot(s)] |
-  | Select Online Player Mode | [online, player(s), pvp, rank(s), ranking] |
-  | Select Puzzle Mode | [puzzle(s)] |
-  | Resign | [resign, resignation, give up, forfeit, surrender] |
-  | Select Time Control | Format of “{minute}+{increment}” E.g. “5+0”, “5 minute(s)”, “5 plus 0” for 5 minutes |
-  | Chess Move | Sentence that contains the components of Universal Chess Interface (UCI) notation. E.g. “Move e2 to e4” => “e2e4” |
+| Actions | Keywords|
+| Select Computer Mode  | [computer(s), pvc, bot(s)] |
+| Select Online Player Mode | [online, player(s), pvp, rank(s), ranking] |
+| Select Puzzle Mode | [puzzle(s)] |
+| Resign | [resign, resignation, give up, forfeit, surrender] |
+| Select Time Control | Format of “{minute}+{increment}” E.g. “5+0”, “5 minute(s)”, “5 plus 0” for 5 minutes |
+| Chess Move | Sentence that contains the components of Universal Chess Interface (UCI) notation. E.g. “Move e2 to e4” => “e2e4” |
   - **Most reliable format for moving chess piece: "Move {source grid} to {destination grid}" e.g. "Move E2 to E4"**
 ---
 
