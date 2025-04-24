@@ -68,7 +68,7 @@ NeoChessBot is a upgraded version of [ChessBot](https://github.com/GNOLNG/ChessB
   - **Press Control + S twice for a single input**
   - **The first Control + S indicates voice input activated and it will record your voice**
   - **The second Control + S terminate the recording session and process the audio to determine your voice input action**
-  **Keywords/Formats for Voice Input:**
+**Keywords/Formats for Voice Input:**
 | Actions | Keywords|
 | --- | --- |
 | Select Computer Mode  | [computer(s), pvc, bot(s)] |
