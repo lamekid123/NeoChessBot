@@ -23,8 +23,10 @@ NeoChessBot is a upgraded version of [ChessBot](https://github.com/GNOLNG/ChessB
 ***Learn How to Operate***
 ***Chat Bot: Handling users’ questions and operation requests.***
   - **Activation: Press the "Chat Bot" button displayed in main phase or using the “Ctrl + Q” shortcut.**
-  - **Chat Bot Operate based on Keywords:** 
+
+**Chat Bot Operate based on Keywords:** 
 |Actions | Keywords|
+|--- | --- |
 |Greetings | [hi, hello, how are you, nice to meet you]|
 |Provide the basic tutorial in Operation | [how to use, tutorial, tutor, help]|
 |Provide information about different input mode | {input mode} e.g. arrow mode, voice input|
@@ -68,6 +70,7 @@ NeoChessBot is a upgraded version of [ChessBot](https://github.com/GNOLNG/ChessB
   - **The second Control + S terminate the recording session and process the audio to determine your voice input action**
   **Keywords/Formats for Voice Input:**
 | Actions | Keywords|
+| --- | --- |
 | Select Computer Mode  | [computer(s), pvc, bot(s)] |
 | Select Online Player Mode | [online, player(s), pvp, rank(s), ranking] |
 | Select Puzzle Mode | [puzzle(s)] |
