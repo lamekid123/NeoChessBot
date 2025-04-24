@@ -119,6 +119,12 @@ NeoChessBot is a upgraded version of [ChessBot](https://github.com/GNOLNG/ChessB
   - **When solved the puzzle, you can choose to start a new puzzle, retry the puzzle or return to home page for other game mode.**
 
 ---
+***User Preference Setting***
+  - **You can modify the on/off, speech rate and volume of the internal speaking engine in the setting menu to meet your needs.**
+  - **Possible Situation:**
+    - **Turn off internal speaking engine for better Screen Reader Compatibility. Only neccessary information will be provided.**
+    - **Turn down/up the speech rate if the internal speaker speak the chessboard information too fast/slow.**
+    - **Turn down/up the volume if the internal speaker speak too loud/soft.**
 
 ## FAQ
 
@@ -133,6 +139,10 @@ Answer: No, the current version of the application does not support pre-moves. Y
 #### Question: Do I need to log in to my Chess.com account every time I open the application?
 
 Answer: No, you don't need to log in to your account again each time you open the application. Your account information will persist, and you will be automatically logged in when you open the application.
+
+#### Question: Why there are two file called "ffmpeg" and "small.en"?
+
+Answer: These two file are fundalmental componets used for the voice input function. Please place them and the NeoChessBot.exe within the same folder for normal operation.
 
 #### Question: How can I remove this software
 
