@@ -138,30 +138,36 @@ https://www.youtube.com/watch?v=s5xkvRZn1EI
 
 ## FAQ
 
-#### Question: Why do I need to grant permission to use this software?
+### Question: Why do I need to grant permission to use this software?
 
 Answer: The chess bot will move the piece based on your input by controlling your mouse cursor, so please avoid moving your cursor after you confirm your move.
 
-#### Question: Can I make pre-moves (move a piece before my opponent finishes their move)?
+---
+### Question: Can I make pre-moves (move a piece before my opponent finishes their move)?
 
 Answer: No, the current version of the application does not support pre-moves. You must wait for your opponent to complete their move before making your own.
 
-#### Question: Do I need to log in to my Chess.com account every time I open the application?
+---
+### Question: Do I need to log in to my Chess.com account every time I open the application?
 
 Answer: No, you don't need to log in to your account again each time you open the application. Your account information will persist, and you will be automatically logged in when you open the application.
 
-#### Question: Will the user preference setting reset when the software is terminated?
+---
+### Question: Will the user preference setting reset when the software is terminated?
 
 Answer: No, all of the user preference setting will store in the registry. The software will automatically restore your setting when launched.
 
-#### Question: Why there are two file called "ffmpeg" and "small.en"?
+---
+### Question: Why there are two file called "ffmpeg" and "small.en"?
 
 Answer: These two file are fundalmental componets used for the voice input function. Please place them and the NeoChessBot.exe within the same folder for normal operation.
 
-#### Question: How can I remove this software
+---
+### Question: How can I remove this software
 
 Answer: You can delete the downloaded folder to remove the application completely.
 
-#### Question: If I encountered error or I have any suggestions, is there any method to report it?
+---
+### Question: If I encountered error or I have any suggestions, is there any method to report it?
 
 Answer: You can contact me through email tlkwok1214@gmail.com or tllkwok2-c@my.cityu.edu.hk
