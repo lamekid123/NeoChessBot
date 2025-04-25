@@ -1,10 +1,10 @@
 # NeoChessBot
 NeoChessBot is a upgraded version of [ChessBot](https://github.com/GNOLNG/ChessBot) with enhanced usability, functionality and reliability. New features such as Voice Input using Whisper Model, Operation and Guidance by Chat Bot, Puzzle Mode, New Board Detection Algorithm and a more informative interface.
 
-**Demonstration Video**
+## Demonstration Video
 
-[![Watch the video](https://www.houseofstaunton.com/media/catalog/product/cache/370e18b3e1577f11e694dc0bc4ea8f7c/m/e/mencmp-bk.png)](https://www.youtube.com/watch?v=s5xkvRZn1EI)
 https://www.youtube.com/watch?v=s5xkvRZn1EI
+[![Watch the video](https://www.houseofstaunton.com/media/catalog/product/cache/370e18b3e1577f11e694dc0bc4ea8f7c/m/e/mencmp-bk.png)](https://www.youtube.com/watch?v=s5xkvRZn1EI)
 
 
 **A quick demonstration on what I have made for improvement**
