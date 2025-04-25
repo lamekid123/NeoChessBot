@@ -150,6 +150,10 @@ Answer: No, the current version of the application does not support pre-moves. Y
 
 Answer: No, you don't need to log in to your account again each time you open the application. Your account information will persist, and you will be automatically logged in when you open the application.
 
+#### Question: Will the user preference setting reset when the software is terminated?
+
+Answer: No, all of the user preference setting will store in the registry. The software will automatically restore your setting when launched.
+
 #### Question: Why there are two file called "ffmpeg" and "small.en"?
 
 Answer: These two file are fundalmental componets used for the voice input function. Please place them and the NeoChessBot.exe within the same folder for normal operation.
