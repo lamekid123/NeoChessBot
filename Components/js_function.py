@@ -253,7 +253,8 @@ clickTimeControlButton = """
                 }
             }
             setTimeout(() => {
-                document.querySelector('.create-game-next-component').querySelector('.cc-button-primary').click();
+                document?.querySelector('.create-game-next-component')?.querySelector('.cc-button-primary')?.click();
+                document?.querySelector('.create-game-component')?.querySelector('.cc-button-primary')?.click();
                 if(!login){
                     setTimeout(() => document.getElementById("guest-button").click(), 1500);
                 }

@@ -1,6 +1,7 @@
 import sys
 import os
 import chess
+from threading import Event
 from functools import partial
 from PyQt6.QtWidgets import (
     QVBoxLayout,
@@ -1295,6 +1296,10 @@ class MainWindow(QMainWindow):
         self.leftWidget.chessWebView.loadFinished.connect(lambda: QTimer.singleShot(4000, self.puzzle_mode_InitBoard))
 
     def puzzle_mode_InitBoard(self):
+        try:
+            self.leftWidget.chessWebView.loadFinished.disconnect()
+        except:
+            print("no load finish connected")
         self.getOpponentMoveTimer.stop()
         self.rightWidget.resign.hide()
         self.rightWidget.check_time.hide()
@@ -1320,8 +1325,13 @@ class MainWindow(QMainWindow):
                         self.currentPos = 'h8'
                         print(f"User: {self.userColor}, Oppoenent: {self.opponentColor}")
                 
-                self.rightWidget.colorBox.setText("Assigned Color: " + self.userColor)
-                self.puzzle_mode_ConstructBoard()
+                try:
+                    self.rightWidget.colorBox.setText("Assigned Color: " + self.userColor)
+                    self.puzzle_mode_ConstructBoard()
+                except:
+                    speak("You have reach the puzzle limit for your account. Returning to home page.")
+                    self.leftWidget.chessWebView.load(QUrl("https://www.chess.com"))
+                    self.change_main_flow_status(Bot_flow_status.setting_status)
             else:
                 match title:
                     case "Correct" | "Solved":
@@ -3191,11 +3201,12 @@ class MainWindow(QMainWindow):
 
     def voice_input(self):
         print("Ctrl S is pressed")
-        voice_input_thread.activate = not voice_input_thread.activate
-        if voice_input_thread.activate:
+        if not voice_input_thread.press_event.is_set():
+            voice_input_thread.press_event.set()
             print("Voice Input activated. Listening...")
             speak("Voice Input activated. Listening...")
         else:
+            voice_input_thread.press_event.clear()
             print("Voice input End")
             speak("Voice input end")
 
@@ -3211,7 +3222,7 @@ class MainWindow(QMainWindow):
                 self.puzzleModeHandler()
             case "move":
                 if self.game_play_mode == Game_play_mode.puzzle_mode:
-                    self.puzzle_movePiece()
+                    self.puzzle_movePiece(voice_input_thread.chess_move)
                 else:
                     self.movePiece(voice_input_thread.chess_move)
             case "resign":
@@ -3264,59 +3275,60 @@ class VoiceInput_Thread(QThread):
     '''
 
     action_signal = pyqtSignal(str)
-    activate_signal = pyqtSignal()
 
     ##auto start and loop until application close
     def __init__(self):
         super(VoiceInput_Thread, self).__init__()
 
+        self.press_event = Event()
+
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model = whisper.load_model("./small.en.pt", device=device)
         
-        self.audio_input = "test.wav"
         self.text_output = ""
-        self.activate = False
         self.daemon = True
         self.FORMAT = pyaudio.paInt16
         self.CHANNELS = 1
         self.RATE = 16000
         self.CHUNK = 1024
+        self.frames = []
+        self.chess_move = []
+        self.start()
         self.audio = pyaudio.PyAudio()
         self.stream = self.audio.open(format=self.FORMAT,
                 channels=self.CHANNELS,
                 rate=self.RATE,
                 input=True,
                 frames_per_buffer=self.CHUNK)
-        self.frames = []
-        self.chess_move = []
-        self.activate_signal.connect(self.run)
-        self.start()
 
     def run(self):
-        print("Voice Input function running")
-        voiceInput_running = True
-        while voiceInput_running:
-            time.sleep(0.5)
-            while self.activate:
-                data = self.stream.read(self.CHUNK)
-                self.frames.append(data)
-            if self.frames:
-                print("Voice Input Ended")
-                with wave.open("tmp.wav", 'wb') as wf:
-                    wf.setnchannels(self.CHANNELS)
-                    wf.setsampwidth(self.audio.get_sample_size(self.FORMAT))
-                    wf.setframerate(self.RATE)
-                    wf.writeframes(b''.join(self.frames))
-                self.frames=[]
-                self.activate = False
-                print("Speech to Text performing...")
-                self.text_output = self.model.transcribe("./tmp.wav", fp16=False, env=my_env)["text"].lower()
-                print(f"Speech to Text finished! Output: {self.text_output}")
-                self.checkAction()
+        while True:
+            self.press_event.wait()
+            if self.press_event.is_set():
+                self.record()
 
-        self.stream.stop_stream()
-        self.stream.close()
-        self.audio.terminate()
+    def record(self):
+        print("Voice Input function running")
+        while self.press_event.is_set():
+            data = self.stream.read(self.CHUNK)
+            self.frames.append(data)
+        if self.frames:
+            print("Voice Input Ended")
+            with wave.open("tmp.wav", 'wb') as wf:
+                wf.setnchannels(self.CHANNELS)
+                wf.setsampwidth(self.audio.get_sample_size(self.FORMAT))
+                wf.setframerate(self.RATE)
+                wf.writeframes(b''.join(self.frames))
+            self.frames=[]
+            print("Speech to Text performing...")
+            self.text_output = self.model.transcribe("./tmp.wav", fp16=False, env=my_env)["text"].lower()
+            print(f"Speech to Text finished! Output: {self.text_output}")
+            self.checkAction()
+
+        self.frames = []
+        # self.stream.stop_stream()
+        # self.stream.close()
+        # self.audio.terminate()
 
     def checkAction(self):
         print(f"Current main_flow_status: {window.main_flow_status}")
@@ -3340,7 +3352,9 @@ class VoiceInput_Thread(QThread):
         elif(window.main_flow_status == Bot_flow_status.select_status):
             match window.game_play_mode:
                 case Game_play_mode.computer_mode:
-                    self.action_signal.emit()
+                    print("Sorry, I don't understand your request. Please repeat it again")
+                    speak("Sorry, I don't understand your request. Please repeat it again")
+                    # self.action_signal.emit()
                 case Game_play_mode.online_mode:
                     find = False
                     for item in timeControlDeterminant_Speak:
