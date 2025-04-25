@@ -43,6 +43,7 @@ https://www.youtube.com/watch?v=s5xkvRZn1EI
 |Provide all the available options in current software state | [what, option(s)]|
 |Start an online game with provided time control | Format of “{minute}+{increment}” E.g. “5+0”, “5 minute(s)”, “5 plus 0” for 5 minutes|
 
+---
 ***Make a move***
 
   There are three ways supported to make a move: 1. Using the Keyboard-Base Interface in command mode. 2. Navigate through the chess board to select source and destination grids in Arrow Mode. 3. Speak out your move in UCI format when activated Voice Input function.
