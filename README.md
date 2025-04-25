@@ -79,6 +79,8 @@ https://www.youtube.com/watch?v=s5xkvRZn1EI
   - **The first Control + S indicates voice input activated and it will record your voice**
   - **The second Control + S terminate the recording session and process the audio to determine your voice input action**
 
+**Most reliable format for moving chess piece: "Move {source grid} to {destination grid}" e.g. "Move E2 to E4"**
+
 **Keywords/Formats for Voice Input:**
 | Actions | Keywords|
 | --- | --- |
@@ -88,8 +90,6 @@ https://www.youtube.com/watch?v=s5xkvRZn1EI
 | Resign | [resign, resignation, give up, forfeit, surrender] |
 | Select Time Control | Format of “{minute}+{increment}” E.g. “5+0”, “5 minute(s)”, “5 plus 0” for 5 minutes |
 | Chess Move | Sentence that contains the components of Universal Chess Interface (UCI) notation. E.g. “Move e2 to e4” => “e2e4” |
-
-  - **Most reliable format for moving chess piece: "Move {source grid} to {destination grid}" e.g. "Move E2 to E4"**
 ---
 
 ***Opponent Move***
